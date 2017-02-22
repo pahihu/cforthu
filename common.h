@@ -6,8 +6,28 @@
  */
 
 /*
- * NOTE THAT THIS FORTH IMPLENTATION REQUIRES int TO BE TWICE THE SIZE OF short
+ * NOTE THAT THIS FORTH IMPLENTATION REQUIRES DCell TO BE TWICE THE SIZE OF Cell
  */
+
+typedef short          Cell;
+typedef unsigned short UCell;
+typedef long           DCell;
+typedef unsigned long  UDCell;
+typedef int            Word;
+
+#define CELL_2BYTES     1
+#define FMT_HEXCELL    "%04x"
+
+/*
+typedef int          Cell;
+typedef unsigned int UCell;
+typedef long long    DCell;
+typedef unsigned long long UDCell;
+typedef int          Word;
+
+#define CELL_4BYTES     1
+#define FMT_HEXCELL     "%08x"
+*/
 
 #define TRUE 1
 #define FALSE 0
@@ -39,10 +59,10 @@
    between is best, so you don't fragment memory with realloc() calls right
    away. */
 
-#define INITMEM (13*1024)	/* 13K holds the distribution forth.dict */
+#define INITMEM (13*1024)	/* 13K holds the distribution forth.dic */
   
 /* set MAXMEM to the MOST MEMORY YOU EVER WANT ALLOCATED TO FORTH. FORTH will
-   never allocate more than MAXMEM*sizeof(short) for the FORTH memory image.
+   never allocate more than MAXMEM*sizeof(Cell) for the FORTH memory image.
    Note that other functions, like open, read, and write, allocate memory
    transparent to the forth system. MAXMEM will not affect these. Also,
    note that realloc is used to grow the FORTH image, and LARGE CHUNKS of

@@ -95,8 +95,8 @@
    else, point into memory (mem[]). They are read by sp@ and rp@, set by sp!
    and rp!. They are initialized by COLD. */
 
-extern unsigned short csp;
-extern unsigned short rsp;
+extern UCell csp;
+extern UCell rsp;
 
 /* This variable is all-important. It will be set to the top of the 
    data area by sbrk, and more memory will be allocated. All memory is
@@ -104,15 +104,16 @@ extern unsigned short rsp;
    element, mem[1] is second, and so on. 
 */
 
-extern short *mem;	/* points to the number of bytes in mem[0], as read
+extern Cell *mem;	/* points to the number of bytes in mem[0], as read
 			   from COREFILE at startup */
 
 /* two more machine registers: the interpretive pointer */
-extern unsigned short ip;	/* for an explanation of these, look in */
-extern unsigned short w;	/* interp.doc */
+extern UCell ip;	        /* for an explanation of these, look in */
+extern UCell w;	                /* interp.doc */
 
 extern int trace, debug;	/* global for tracing in next() */
-extern int tracedepth, breakenable, breakpoint, qtermflag, forceip, nobuf;
+extern int tracedepth, breakenable, qtermflag, forceip, nobuf;
+extern Cell breakpoint;
 extern FILE *blockfile;
 extern long bfilesize;
 extern char *bfilename;
@@ -120,8 +121,8 @@ extern char *cfilename;
 extern char *sfilename;
 
 /* stack manipulation */
-extern void push(int);
-extern short pop();
-extern void rpush(int);
-extern short rpop();
+extern void push(Word);
+extern Cell pop();
+extern void rpush(Word);
+extern Cell rpop();
 extern void errexit(char*, ...);

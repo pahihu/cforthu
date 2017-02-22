@@ -7,8 +7,9 @@
 
 #include <stdio.h>
 #include <ctype.h>
-#include <string.h>
 #include <stdlib.h>
+#include <stdarg.h>
+#include <string.h>
 #include "common.h"
 #include "forth.lex.h"		/* #defines for lexical analysis */
 
@@ -22,14 +23,14 @@
 
 struct chainrec {
     char chaintext[32];
-    int defloc;				/* CFA or label loc */
+    Cell defloc;			/* CFA or label loc */
     int chaintype;			/* 0=undef'd, 1=absolute, 2=relative */
     CHAIN *nextchain;
     LINK *firstlink;
 };
 
 struct linkrec {
-    int loc;
+    Cell loc;
     LINK *nextlink;
 };
 
@@ -42,10 +43,10 @@ CHAIN *find();
 CHAIN *lastchain();
 LINK *lastlink();
 
-int dp = DPBASE;
-int latest;
+Cell dp = DPBASE;
+Cell latest;
 
-short mem[INITMEM];
+Cell mem[INITMEM];
 
 FILE *outf;
 
@@ -54,24 +55,23 @@ void mkrest();
 void buildcore();
 void checkdict();
 void writedict();
-int instance(char*);
-void dicterr1(char*);
-void dicterr(char*,char*);
-void mkword(char *s,int);
-short mkval(TOKEN*);
-void comma(int);
+Cell instance(char*);
+void dicterr(char*,...);
+void mkword(char *s,Word);
+Cell mkval(TOKEN*);
+void comma(Word);
 void mkstr(char*);
 void skipcomment();
-void define(char*,int);
+void define(char*,Word);
 void dictwarn(char*);
-int mkdecimal(char*);
-int mkhex(char*);
-int mkoctal(char*);
-void printword(int);
+Cell mkdecimal(char*);
+Cell mkhex(char*);
+Cell mkoctal(char*);
+void printword(Word);
 
 void ChkLit(token, prev_lit)
 TOKEN *token;
-int prev_lit;
+Cell prev_lit;
 {
         if (!prev_lit) {
                 dictwarn("Questionable literal");
@@ -132,7 +132,7 @@ void buildcore()			/* set up low core */
 void builddict()			/* read the dictionary */
 {
     int prev_lit = 0, lit_flag = 0;
-    int temp;
+    Cell temp;
     char s[256];
     TOKEN *token;
 
@@ -147,14 +147,14 @@ void builddict()			/* read the dictionary */
 	    printf("primitive ");
 #endif /* DEBUG */
 	    if ((token = yylex()) == NULL)	/* get the next word */
-		dicterr1("No word following PRIM");
+		dicterr("No word following PRIM");
 	    strcpy (s,token->text);
 #ifdef DEBUG
 	    printf(".%s. ",s);
 #endif /* DEBUG */
 	    if ((token = yylex()) == NULL)	/* get the value */
-		dicterr1("No value following PRIM <word>");
-	    mkword(s,mkval(token));
+		dicterr("No value following PRIM <word>");
+	    mkword(s,(Cell)mkval(token));
 	    break;
 
 	case CONST:
@@ -162,7 +162,7 @@ void builddict()			/* read the dictionary */
 	    printf("constant ");
 #endif /* DEBUG */
 	    if ((token = yylex()) == NULL)	/* get the word */
-		dicterr1("No word following CONST");
+		dicterr("No word following CONST");
 	    strcpy (s,token->text);		/* s holds word */
 #ifdef DEBUG
 	    printf(".%s. ",s);
@@ -170,9 +170,9 @@ void builddict()			/* read the dictionary */
 	    if (!find("DOCON"))
 		dicterr ("Constant definition before DOCON: %s",s);
 				/* put the CF of DOCON into this word's CF */
-	    mkword(s,(int)mem[instance("DOCON")]);
+	    mkword(s,(Cell)mem[instance("DOCON")]);
 	    if ((token = yylex()) == NULL)	/* get the value */
-		dicterr1("No value following CONST <word>");
+		dicterr("No value following CONST <word>");
 	    temp = mkval(token);
 
 	    /* two special-case constants */
@@ -187,16 +187,16 @@ void builddict()			/* read the dictionary */
 	    printf("variable ");
 #endif /* DEBUG */
 	    if ((token = yylex()) == NULL)	/* get the variable name */
-		dicterr1("No word following VAR");
+		dicterr("No word following VAR");
 	    strcpy (s,token->text);
 #ifdef DEBUG
 	    printf(".%s. ",s);
 #endif /* DEBUG */
 	    if (!find("DOVAR"))
 		dicterr("Variable declaration before DOVAR: %s",s);
-	    mkword (s, (int)mem[instance("DOVAR")]);
+	    mkword (s, (Cell)mem[instance("DOVAR")]);
 	    if ((token = yylex()) == NULL)	/* get the value */
-		dicterr1("No value following VAR <word>");
+		dicterr("No value following VAR <word>");
 	    comma(mkval(token));
 	    break;
 
@@ -205,16 +205,16 @@ void builddict()			/* read the dictionary */
 	    printf("uservar ");
 #endif /* DEBUG */
 	    if ((token = yylex()) == NULL)	/* get uservar name */
-		dicterr1("No name following USER");
+		dicterr("No name following USER");
 	    strcpy (s,token->text);
 #ifdef DEBUG
 	    printf(".%s. ",s);
 #endif /* DEBUG */
 	    if (!find("DOUSE"))
 		dicterr("User variable declared before DOUSE: %s",s);
-	    mkword (s, (int)mem[instance("DOUSE")]);
+	    mkword (s, (Cell)mem[instance("DOUSE")]);
 	    if ((token = yylex()) == NULL)	/* get the value */
-		dicterr1("No value following USER <word>");
+		dicterr("No value following USER <word>");
 	    comma(mkval(token));
 	    break;
 
@@ -223,7 +223,7 @@ void builddict()			/* read the dictionary */
 	    printf("colon def'n ");
 #endif /* DEBUG */
 	    if ((token = yylex()) == NULL)	/* get name of word */
-		dicterr1("No word following : in definition");
+		dicterr("No word following : in definition");
 	    strcpy (s,token->text);
 #ifdef DEBUG
 	    printf(".%s.\n",s);
@@ -232,7 +232,7 @@ void builddict()			/* read the dictionary */
 		dicterr("Colon definition appears before DOCOL: %s",s);
 
 	    if (token->type == NUL) {	/* special zero-named word */
-		int here = dp;		/* new latest */
+		Cell here = dp;		/* new latest */
 #ifdef DEBUG
 		printf("NULL WORD AT 0x%04x\n");
 #endif /* DEBUG */
@@ -240,10 +240,10 @@ void builddict()			/* read the dictionary */
 		comma(0x80);
 		comma(latest);
 		latest = here;
-		comma((int)mem[instance("DOCOL")]);
+		comma((Cell)mem[instance("DOCOL")]);
 	    }
 	    else {
-		mkword (s, (int)mem[instance("DOCOL")]);
+		mkword (s, (Cell)mem[instance("DOCOL")]);
 	    }
 	    break;
 
@@ -291,7 +291,7 @@ void builddict()			/* read the dictionary */
 	    printf("label: ");
 #endif /* DEBUG */
 	    if ((token = yylex()) == NULL)
-		dicterr1("No name following LABEL");
+		dicterr("No name following LABEL");
 #ifdef DEBUG
 	    printf(".%s. ", token->text);
 #endif /* DEBUG */
@@ -344,10 +344,10 @@ void builddict()			/* read the dictionary */
 }
 
 void comma(i)		        /* put at mem[dp]; increment dp */
-int i;
+Word i;
 {
-    mem[dp++] = (unsigned short)i;
-    if (dp > INITMEM) dicterr1("DICTIONARY OVERFLOW");
+    mem[dp++] = (UCell)i;
+    if (dp > INITMEM) dicterr("DICTIONARY OVERFLOW");
 }
 
 /*
@@ -358,9 +358,9 @@ int i;
 
 void mkword(s, v)
 char *s;
-int v;
+Word v;
 {
-	int here, count = 0;
+	Cell here, count = 0;
 	char *olds;
 	olds = s;		/* preserve this for resolving references */
 
@@ -371,22 +371,22 @@ int v;
 	here = dp;		/* hold this value to place length byte */
 
 	while (*s) {		/* for each character */
-		mem[++dp] = (unsigned short)*s;
+		mem[++dp] = (UCell)*s;
 		count++; s++;
 	}
 
-	if (count >= MAXWIDTH) dicterr1("Input word name too long");
+	if (count >= MAXWIDTH) dicterr("Input word name too long");
 
 				/* set MSB on */
-	mem[here] = (short)(count | 0x80);
+	mem[here] = (Cell)(count | 0x80);
 
 	mem[dp++] |= 0x80;	/* set hi bit of last char in name */
 	
-	mem[dp++] = (short)latest;	/* the link field */
+	mem[dp++] = (Cell)latest;	/* the link field */
 
 	latest = here;		/* update the link */
 
-	mem[dp] = (short)v;	/* code field; leave dp = CFA */
+	mem[dp] = (Cell)v;	/* code field; leave dp = CFA */
 
 	define(olds,1);		/* place in symbol table. 1 == "not a label" */
 	dp++;			/* now leave dp holding PFA */
@@ -406,12 +406,12 @@ void mkrest()			/* Write out the word FORTH as a no-op with
 	mem[COLDIP] = dp;	/* the cold-start IP is here, and the word
 				   which will be executed is COLD */
 	if ((mem[dp++] = instance("COLD")) == 0)
-		dicterr1("COLD must be defined to take control at startup");
+		dicterr("COLD must be defined to take control at startup");
 
 	mem[ABORTIP] = dp;	/* the abort-start IP is here, and the word
 				   which will be executed is ABORT */
 	if ((mem[dp++] = instance("ABORT")) == 0)
-		dicterr1("ABORT must be defined to take control at interrupt");
+		dicterr("ABORT must be defined to take control at interrupt");
 
 	mkword("FORTH",mem[instance("DOCOL")]);
 	comma(instance(";S"));
@@ -422,20 +422,23 @@ void mkrest()			/* Write out the word FORTH as a no-op with
 	if (mem[LIMIT] >= INITMEM) mem[LIMIT] = INITMEM-1;
 }
 
-void writedict()			/* write memory to COREFILE and map 
+void writedict()		/* write memory to COREFILE and map 
 			   	   to MAPFILE */
 {
     FILE   *outfile;
     int     i, temp, tempb, firstzero, nonzero;
     char    chars[9], outline[80], tstr[6];
 
+    chars[8] = '\0';
     outfile = fopen(MAPFILE,"w");
 
     for (temp = 0; temp < dp; temp += 8) {
 	nonzero = FALSE;
-	sprintf (outline, "%04x:", temp);
+	sprintf (outline, FMT_HEXCELL, temp);
+        strcat (outline, ":");
 	for (i = temp; i < temp + 8; i++) {
-	    sprintf (tstr, " %04x", (unsigned short) mem[i]);
+            strcat (outline, " ");
+	    sprintf (tstr, FMT_HEXCELL, (UCell) mem[i]);
 	    strcat (outline, tstr);
 	    tempb = mem[i] & 0x7f;
 	    if (tempb < 0x7f && tempb >= ' ')
@@ -475,7 +478,7 @@ void writedict()			/* write memory to COREFILE and map
     }
 }
 
-short mkval(t)			/* convert t->text to integer based on type */
+Cell mkval(t)			/* convert t->text to integer based on type */
 TOKEN *t;
 {
 	char *s = t->text;
@@ -494,15 +497,15 @@ TOKEN *t;
 	case OCTAL:
 		return (sign * mkoctal(s));
 	default:
-		dicterr1("Bad value following PRIM, CONST, VAR, or USER");
+		dicterr("Bad value following PRIM, CONST, VAR, or USER");
 	}
         return 0;
 }
 
-int mkhex(s)
+Cell mkhex(s)
 char *s;
 {				/*  convert hex ascii to integer */
-    int     temp;
+    Cell    temp;
     temp = 0;
 
     s += 2;			/* skip over '0x' */
@@ -520,10 +523,10 @@ char *s;
     return temp;
 }
 
-int mkoctal(s)
+Cell mkoctal(s)
 char *s;
 {				/*  convert Octal ascii to integer */
-    int     temp;
+    Cell   temp;
     temp = 0;
 
     while (isoctal (*s)) {	/* first non-octal char ends */
@@ -533,28 +536,32 @@ char *s;
     return temp;
 }
 
-int mkdecimal(s)		/* convert ascii to decimal */
+Cell mkdecimal(s)		/* convert ascii to decimal */
 char *s;
 {
-	return (atoi(s));	/* alias */
+    Cell    temp;
+    temp = 0;
+
+    while (isdigit (*s)) {
+        temp = temp * 10 + (*s - '0');
+        s++;
+    }
+    return temp;
 }
 
-void dicterr(s,p1)
-char *s;
-char *p1;	                /* might be char * -- printf uses it */
+void dicterr(char *s,...)
 {
-    fprintf(stderr,s,p1);
+    va_list ap;
+    va_start(ap,s);
+    vfprintf(stderr,s,ap);
+    va_end(ap);
+    fflush(stderr);
+
     fprintf(stderr,"\nLast word defined was ");
     printword(latest);
 /*    fprintf(stderr, "; last word read was \"%s\"", token->text); */
     fprintf(stderr,"\n");
     exit(1);
-}
-
-void dicterr1(s)
-char *s;
-{
-    dicterr(s,0);
 }
 
 void dictwarn(s)	/* almost like dicterr, but don't exit */
@@ -566,7 +573,7 @@ char *s;
 }
     
 void printword(n)
-int n;
+Word n;
 {
     int count, tmp;
     count = mem[n] & 0x1f;
@@ -652,7 +659,7 @@ char *s;
 
 void define(s,t)	/* define s at current dp */
 char *s;
-int t;
+Word t;
 {
 	CHAIN *ch;
 	LINK *ln, *templn;
@@ -662,7 +669,7 @@ int t;
 #endif /* DEBUG */
 
 	if (t < 1 || t > 2)	/* range check */
-		dicterr1("Program error: type in define() not 1 or 2.");
+		dicterr("Program error: type in define() not 1 or 2.");
 
 	if ((ch = find(s)) != NULL) {		/* defined or instanced? */
 		if (ch -> chaintype != 0)	/* already defined! */
@@ -694,11 +701,11 @@ int t;
 		printf("    Forward ref at 0x%x\n",ln->loc);
 #endif /* DEBUG */
 		switch (ch->chaintype) {
-		case 1: mem[ln->loc] = (short)dp;	/* absolute */
+		case 1: mem[ln->loc] = (Cell)dp;	/* absolute */
 			break;
-		case 2: mem[ln->loc] = (short)(dp - ln->loc);	/* relative */
+		case 2: mem[ln->loc] = (Cell)(dp - ln->loc);	/* relative */
 			break;
-		default: dicterr1 ("Bad type field in define()");
+		default: dicterr ("Bad type field in define()");
 		}
 
 		/* now skip to the next link & free this one */
@@ -717,7 +724,7 @@ int t;
    where <s> was the dp when s was defined.
 */
 
-int instance(s)
+Cell instance(s)
 char *s;
 {
 	CHAIN *ch;
@@ -761,7 +768,7 @@ char *s;
 #endif /* DEBUG */
 			return ch->defloc - dp;
 		default:
-			dicterr1("Program error: bad type for chain");
+			dicterr("Program error: bad type for chain");
 		}
 	}
         return 0;

@@ -36,9 +36,10 @@
 
 /* declare globals which are defined in forth.h */
 
-unsigned short csp, rsp, ip, w;
-short *mem;
-int trace, tracedepth, debug, breakenable, breakpoint, qtermflag, forceip;
+UCell csp, rsp, ip, w;
+Cell *mem;
+int trace, tracedepth, debug, breakenable, qtermflag, forceip;
+Cell breakpoint;
 int nobuf;
 FILE *blockfile;
 long bfilesize;
@@ -51,7 +52,7 @@ void memdump();
 void dotrace();
 void dobreak();
 void usage();
-int xtoi(char*);
+Cell xtoi(char*);
 void initsignals();
 void getblockfile();
 
@@ -61,23 +62,24 @@ void getblockfile();
              ----------------------------------------------------
 */
 
-void errexit(char *s, ...)		/* An error occurred -- clean up (?) and
+void errexit(char *s, ...)	/* An error occurred -- clean up (?) and
 				   exit. */
 {
     va_list ap;
     va_start(ap,s);
-    vprintf(s,ap); 
+    vfprintf(stderr,s,ap); 
     va_end(ap);
+    fflush(stderr);
 
-    printf("ABORT FORTH!\nDumping to %s... ",DUMPFILE);
-    fflush(stdout);
+    fprintf(stderr,"ABORT FORTH!\nDumping to %s... ",DUMPFILE);
+    fflush(stderr);
     memdump();
-    puts("done.");
+    fputs("done.\n",stderr);
     exit(1);
 }
 
 void Callot (n)			/* allot n words in the dictionary */
-short n;
+int n;
 {
     unsigned newsize;
 
@@ -87,7 +89,7 @@ short n;
 	if (newsize > MAXMEM && MAXMEM)
 		errexit("ATTEMPT TO GROW PAST MAXMEM (%d) WORDS\n",MAXMEM);
 
-	mem = (short *)realloc((char *)mem, newsize*sizeof(*mem));
+	mem = (Cell *)realloc((char *)mem, newsize*sizeof(*mem));
 	if (mem == NULL)
 		errexit("REALLOC FAILED\n");
 	mem[LIMIT] = newsize;
@@ -95,14 +97,14 @@ short n;
 }
 
 void push(v)			/* push value v to cstack */
-int v;
+Word v;
 {
     if (csp <= TIB_END)
 	errexit("PUSH TO FULL CALC. STACK\n");
-    mem[--csp] = (short) v;
+    mem[--csp] = (Cell) v;
 }
 
-short pop()			/* pop a value from comp. stack, and return
+Cell pop()			/* pop a value from comp. stack, and return
 				   it as the value of the function */
 {
     if (csp >= INITS0) {
@@ -113,14 +115,14 @@ short pop()			/* pop a value from comp. stack, and return
 }
 
 void rpush(v)
-int v;
+Word v;
 {
     if (rsp <= INITS0)
 	errexit("PUSH TO FULL RETURN STACK");
-    mem[--rsp] = (short) v;
+    mem[--rsp] = (Cell) v;
 }
 
-short rpop()
+Cell rpop()
 {
     if (rsp >= INITR0)
 	errexit("POP FROM EMPTY RETURN STACK!");
@@ -172,7 +174,7 @@ void next()			/* instruction processor: control goes here
  * reason, "EXECUTE" MUST BE THE FIRST WORD IN THE DICTIONARY.
  */
 {
-    short p;
+    Cell p;
 	
     while (1) {
 	if (forceip) {		/* force ip to this value -- used by sig_int */
@@ -275,13 +277,13 @@ next1:				/* This is for the SPECIAL CASE */
 
 void dotrace()
 {
-	short worka, workb, workc;
+	Cell worka, workb, workc;
 	putchar('\n');
 	if (tracedepth) {		/* show any stack? */
 		printf("sp: %04x (", csp);
 		worka = csp;
 		for (workb = tracedepth; workb; workb--)
-			printf("%04x ",(unsigned short) mem[worka++]);
+			printf("%04x ",(UCell) mem[worka++]);
 		putchar(')');
 	}
 	printf(" ip=%04x ",ip);
@@ -312,11 +314,15 @@ void dotrace()
 #ifdef BREAKPOINT
 void dobreak()
 {
-	int temp;
+	Cell temp;
 	puts("Breakpoint.");
-	printf("Stack pointer = %x:\n",csp);
-	for (temp = csp; temp < INITS0; temp++)
-		printf("\t%04x",mem[temp]);
+        printf("Stack pointer = ");
+        printf(FMT_HEXCELL, csp);
+        printf(":\n");
+	for (temp = csp; temp < INITS0; temp++) {
+                putchar('\t');
+		printf(FMT_HEXCELL,mem[temp]);
+        }
 	putchar('\n');
 }
 #endif /* BREAKPOINT */
@@ -326,7 +332,7 @@ int argc;
 char *argv[];
 {
 	FILE *fp;
-	unsigned short size;
+	UCell size;
 	int i = 1;
 
 	cfilename = COREFILE;	/* "forth.core" */
@@ -391,7 +397,7 @@ char *argv[];
 		exit(1) ;
 	}
 
-	if ((mem = (short *)calloc(size, sizeof(*mem))) == NULL) {
+	if ((mem = (Cell *)calloc(size, sizeof(*mem))) == NULL) {
 		fprintf(stderr, "Forth: unable to malloc(%d,%d)\n",
 			size, (int)sizeof(*mem));
 		exit(1);
@@ -459,10 +465,13 @@ char *s;
 void memdump()		/* dump core. */
 {
 	int i;	/* top of RAM */
-	int temp, tempb, firstzero, nonzero;
+	Cell temp, tempb;
+        int firstzero, nonzero;
 	char chars[9], outline[80], tstr[6];
 	FILE *dumpfile;
 
+        firstzero = FALSE; nonzero = FALSE;
+        chars[8] = '\0';
 	dumpfile = fopen(DUMPFILE,"w");
 
 	fprintf(dumpfile,
@@ -471,9 +480,11 @@ void memdump()		/* dump core. */
 
 	for (temp = 0; temp < mem[LIMIT]; temp += 8) {
 		nonzero = FALSE;
-		sprintf(outline, "%04x:", temp);
+		sprintf(outline, FMT_HEXCELL, temp);
+                strcat(outline, ":");
 		for (i=temp; i<temp+8; i++) {
-			sprintf(tstr," %04x", (unsigned short)mem[i]);
+                        strcat(outline, " ");
+			sprintf(tstr, FMT_HEXCELL, (UCell)mem[i]);
 			strcat(outline, tstr);
 			tempb = mem[i] & 0x7f;
 			if (tempb < 0x7f && tempb >= ' ')
@@ -496,10 +507,10 @@ void memdump()		/* dump core. */
 
 /* here is where ctype.h is used */
 
-int xtoi(s)
+Cell xtoi(s)
 char *s;
 {				/*  convert hex ascii to integer */
-    int temp = 0;
+    Cell temp = 0;
 
     while (isxdigit (*s)) {	/* first non-hex char ends */
 	temp <<= 4;		/* mul by 16 */

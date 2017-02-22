@@ -25,7 +25,7 @@ void zbranch()			/* add an offset (branch) if tos == 0 */
 
 void ploop()			/* (loop) -- loop control */
 {
-	short index, limit;
+	Cell index, limit;
 	index = rpop()+1;
 	if(index < (limit = rpop())) {   /* if the new index < the limit */
 		rpush(limit);	/* restore the limit */
@@ -38,7 +38,7 @@ void ploop()			/* (loop) -- loop control */
 
 void pploop()			/* (+loop) -- almost the same */
 {
-	short index, limit;
+	Cell index, limit;
 	index = rpop()+pop();		/* get index & add increment */
 	if(index < (limit = rpop())) {	/* if new index < limit */
 		rpush (limit);		/* restore the limit */
@@ -73,7 +73,7 @@ void r()	/* this must be a primitive as well as I because otherwise it
 
 void digit()		/* digit: c -- FALSE or [v TRUE] */
 {
-    short c, base;		/* C is ASCII char, convert to val. BASE is
+    Cell c, base;		/* C is ASCII char, convert to val. BASE is
 				   used for range checking */
     base = pop();
     c = pop();
@@ -107,7 +107,7 @@ void pfind()	/* WORD TOP -- xx FLAG, where TOP is NFA to start at;
 		   yy is actual length of the word found;
 		   FLAG is 1 if found. If not found, 0 alone is stacked. */
 {
-    unsigned short  worka, workb, workc, current, word, match;
+    UCell  worka, workb, workc, current, word, match;
 
     current = pop ();
     word = pop ();
@@ -178,7 +178,7 @@ encl4:	/* found the trailing delimiter */
 
 void cmove()		/* cmove: source dest number -- */
 {
-    short source, dest, number, i;
+    Cell source, dest, number, i;
     number = pop();
     dest = pop();
     source = pop();
@@ -187,7 +187,7 @@ void cmove()		/* cmove: source dest number -- */
 
 void fill()		/* fill: c dest number -- */
 {
-    short dest, number, c;
+    Cell dest, number, c;
     number = pop();
     dest = pop();
     c = pop();
@@ -203,34 +203,34 @@ void fill()		/* fill: c dest number -- */
 
 void ustar()			/* u*: a b -- a*b.hi a*b.lo */
 {
-    unsigned short a, b;
-    unsigned long c;
-    a = (unsigned short)pop();
-    b = (unsigned short)pop();
+    UCell a, b;
+    UDCell c;
+    a = (UCell)pop();
+    b = (UCell)pop();
     c = a * b;
 
-    /* (short) -1 is probably FFFF, which is just what we want */
-    push ((unsigned short)(c & (short) -1));	      /* low word of product */
-						     /* high word of product */
-    push ((short)((c >> (8*sizeof(short))) & (short) -1));
+    /* (Cell) -1 is probably FFFF..., which is just what we want */
+    push ((UCell)(c & (Cell) -1));	      /* low word of product */
+					      /* high word of product */
+    push ((Cell)((c >> (8*sizeof(Cell))) & (Cell) -1));
 }
 
 void uslash()		/* u/: NUM.LO NUM.HI DENOM -- REM QUOT */
 {
-    unsigned short numhi, numlo, denom;
-    unsigned short quot, remainder;	/* the longs below are to be sure the
+    UCell numhi, numlo, denom;
+    UCell quot, remainder;	        /* the DCell below are to be sure the
 					   intermediate computation is done
-					   long; the results are short */
+					   DCell; the results are Cell */
     denom = pop();
     numhi = pop();
     numlo = pop();
-    quot = ((((unsigned long)numhi) << (8*sizeof(short))) 
-				+ (unsigned long)numlo) 
-					/ (unsigned long)denom;
+    quot = ((((UDCell)numhi) << (8*sizeof(Cell))) 
+				+ (UDCell)numlo) 
+					/ (UDCell)denom;
 
-    remainder = ((((unsigned long)numhi) << (8*sizeof(short))) 
-				+ (unsigned long)numlo) 
-					% (unsigned long)denom;
+    remainder = ((((UDCell)numhi) << (8*sizeof(Cell))) 
+				+ (UDCell)numlo) 
+					% (UDCell)denom;
 
     push (remainder);
     push (quot);
@@ -238,7 +238,7 @@ void uslash()		/* u/: NUM.LO NUM.HI DENOM -- REM QUOT */
 
 void swap()			/* swap: a b -- b a */
 {
-    short a, b;
+    Cell a, b;
     b = pop();
     a = pop();
     push (b);
@@ -247,7 +247,7 @@ void swap()			/* swap: a b -- b a */
 
 void rot()			/* rotate */
 {
-    short a, b, c;
+    Cell a, b, c;
     a = pop ();
     b = pop ();
     c = pop ();
@@ -258,7 +258,7 @@ void rot()			/* rotate */
 
 void tfetch()			/* 2@: addr -- mem[addr+1] mem[addr] */
 {
-    unsigned short addr;
+    UCell addr;
     addr = pop();
     push (mem[addr + 1]);
     push (mem[addr]);
@@ -266,7 +266,7 @@ void tfetch()			/* 2@: addr -- mem[addr+1] mem[addr] */
 
 void store()		/* !: val addr -- <set mem[addr] = val> */
 {
-    unsigned short tmp;
+    UCell tmp;
     tmp = pop();
     mem[tmp] = pop();
 }
@@ -280,7 +280,7 @@ void tstore()			/* 2!: val1 val2 addr --
 				   mem[addr] = val2,
 				   mem[addr+1] = val1 */
 {
-    unsigned short tmp;
+    UCell tmp;
     tmp = pop();
     mem[tmp] = pop();
     mem[tmp+1] = pop();
@@ -297,55 +297,55 @@ void leave()			/* set the index = the limit of a DO */
 
 void dplus()			/* D+: double-add */
 {
-    short ahi, alo, bhi, blo;
-    long a, b;
+    Cell ahi, alo, bhi, blo;
+    DCell a, b;
     bhi = pop();
     blo = pop();
     ahi = pop();
     alo = pop();
-    a = ((long)ahi << (8*sizeof(short))) + (long)alo;
-    b = ((long)bhi << (8*sizeof(short))) + (long)blo;
+    a = ((DCell)ahi << (8*sizeof(Cell))) + (DCell)alo;
+    b = ((DCell)bhi << (8*sizeof(Cell))) + (DCell)blo;
     a = a + b;
-    push ((unsigned short)(a & (short) -1));	/* sum lo */
-    push ((short)(a >> (8*sizeof(short))));	/* sum hi */
+    push ((UCell)(a & (Cell) -1));	        /* sum lo */
+    push ((Cell)(a >> (8*sizeof(Cell))));	/* sum hi */
 }
 
 void subtract()			/* -: a b -- (a-b) */
 {
-    int tmp;
+    Cell tmp;
     tmp = pop();
     push (pop() - tmp);
 }
 
 void dsubtract()		/* D-: double-subtract */
 {
-    short ahi, alo, bhi, blo;
-    long a, b;
+    Cell ahi, alo, bhi, blo;
+    DCell a, b;
     bhi = pop();
     blo = pop();
     ahi = pop();
     alo = pop();
-    a = ((long)ahi << (8*sizeof(short))) + (long)alo;
-    b = ((long)bhi << (8*sizeof(short))) + (long)blo;
+    a = ((DCell)ahi << (8*sizeof(Cell))) + (DCell)alo;
+    b = ((DCell)bhi << (8*sizeof(Cell))) + (DCell)blo;
     a = a - b;
-    push ((unsigned short)(a & (short) -1));	/* diff lo */
-    push ((short)(a >> (8*sizeof(short))));	/* diff hi */
+    push ((UCell)(a & (Cell) -1));	        /* diff lo */
+    push ((Cell)(a >> (8*sizeof(Cell))));	/* diff hi */
 }
 
 void dminus()			/* DMINUS: negate a double number */
 {
-    unsigned short ahi, alo;
-    long a;
+    UCell ahi, alo;
+    DCell a;
     ahi = pop();
     alo = pop();
-    a = -(((long)ahi << (8*sizeof(short))) + (long)alo);
-    push ((unsigned short)(a & (short) -1));		/* -a lo */
-    push ((unsigned short)(a >> (8*sizeof(short)))); 	/* -a hi */
+    a = -(((DCell)ahi << (8*sizeof(Cell))) + (DCell)alo);
+    push ((UCell)(a & (Cell) -1));		        /* -a lo */
+    push ((UCell)(a >> (8*sizeof(Cell)))); 	        /* -a hi */
 }
 
 void over()			/* over: a b -- a b a */
 {
-    short a, b;
+    Cell a, b;
     b = pop();
     a = pop();
     push (a);
@@ -355,7 +355,7 @@ void over()			/* over: a b -- a b a */
 
 void dup()			/* dup: a -- a a */
 {
-    short a;
+    Cell a;
     a = pop();
     push (a);
     push (a);
@@ -363,7 +363,7 @@ void dup()			/* dup: a -- a a */
 
 void tdup()		        /* 2dup: a b -- a b a b */
 {
-    short a, b;
+    Cell a, b;
     b = pop();
     a = pop();
     push (a);
@@ -374,7 +374,7 @@ void tdup()		        /* 2dup: a b -- a b a b */
 
 void pstore()			/* +!: val addr -- <add val to mem[addr]> */
 {
-    short addr, val;
+    Cell addr, val;
     addr = pop();
     val = pop();
     mem[addr] += val;
@@ -383,7 +383,7 @@ void pstore()			/* +!: val addr -- <add val to mem[addr]> */
 void toggle()			/* toggle: addr bits -- <xor mem[addr]
 				   with bits, store in mem[addr]> */
 {
-    short bits, addr;
+    Cell bits, addr;
     bits = pop();
     addr = pop();
     mem[addr] ^= bits;
