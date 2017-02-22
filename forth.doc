@@ -1,0 +1,642 @@
+C-FORTH: a portable, C-coded figFORTH interpreter.
+
+Written by Allan Pratt; completed April 1985.
+
+This is a FORTH interpreter written entirely in portable C and FORTH. It
+requires nothing more than a decent C compiler to use.  It is not exactly
+fast or efficient, but it is a true FORTH interpreter.
+
+The features include:
+
+Bootstrapping threaded definitions from a near-FORTH dictionary file.
+Block file I/O.
+Execution tracing and single-stepping.
+Breakpoint detection, dumping the stack at the breakpoint.
+Saving and automatic restoration of the FORTH environment.
+Ability to convert the block file to a line-editor-compatible file, and back.
+
+Included with the interpreter is a block file containing:
+
+An UNTHREAD utility.
+A screen editor with key-binding and cursor-addressing.
+
+
+BRINGING UP THE INTERPRETER:
+
+THIS FORTH MODEL REQUIRES "int"s TO BE TWICE THE SIZE OF "short"s,
+and "short"s to be 16 bits. I realize this is a barrier to portability,
+but you can change occurrances of "int" to "long" and "short" to "int" if
+"long"s are twice the size of "int"s.
+
+Note also that model sizes greater than 32K (with 16-bit cells) are likely
+to fail because of the sign bit. This has not been adequately tested.
+
+The first four sections of the file "common.h" contain implementation-dependent
+constants. These are TRACE, BREAKPOINT, several default file names, INITMEM,
+MAXMEM, and NSCR. As distributed, the FORTH system will work on most systems,
+but especially virtual-memory systems. If you do not have virtual memory, you
+will want to change MAXMEM -- see common.h for instructions.
+
+Once you've configured common.h to your taste, compile the files with
+
+	touch lex_yy.c
+	make all
+
+Note that lex_yy.c is lex output from forth.lex, slightly modified (using
+sed). lex_yy.c is included in the distribution because not everybody has
+lex and sed. You touch lex_yy.c before make-ing so make doesn't try to remake
+it.
+
+This make will create several files. Notable among them are "nf", the
+bootstrapper, "forth.cor", the core-image output of nf, and "forth", the
+interpreter itself. Finally, there are two utility filters, blk2lin and 
+lin2blk. These convert files from block format to line format and back (blk2lin 
+--> block to line). A line-format file is one suitable for editing with vi or 
+emacs: it consists of a header line for each screen, followed by 16 
+newline-separated lines of text for that screen, followed by the next screen.
+THERE MUST ALWAYS BE SIXTEEN LINES BETWEEN HEADERS in the line file, or lin2blk 
+won't work properly.
+
+You must use lin2blk to create the block file "forth.blk" from "forth.lin". 
+Use:
+
+	lin2blk < forth.lin > forth.blk
+
+to do this.  If you don't have I/O redirection, I'm afraid you'll have to
+patch these programs (and lex_yy.c and nf.c, for that matter) to take 
+arguments or use default files.
+
+Note that "forth.blk" is the default block file used by FORTH. You can change
+this default in "common.h", and you can change it on the FORTH command line
+with -f.
+
+Now that you have the interpreter ("forth"), the block file
+("forth.blk"), and the core file ("forth.cor"), you are ready to
+roll. Invoke FORTH with the following line to the C-shell:
+
+	stty -echo cbreak ; forth ; stty echo -cbreak
+
+Some notes while running FORTH:
+
+The backspace character is ^H, no matter what your terminal is set for. When
+you backspace, ASCII 8 gets sent to the screen, so the cursor should back up
+but not erase the letter you're backing up over. There is no kill character
+to wipe out an entire line. If you backspace beyond the beginning of the line,
+you will get a beep.
+
+Don't use tabs; FORTH doesn't recognize them as whitespace.
+
+Everything in the FORTH world is upper-case. Use caps-lock if you have one.
+You could also enter word names in mixed - lower - case if you wish.
+
+The VLIST command lists the FORTH vocabulary.
+
+Some commands, like LIST and VLIST, use the FORTH word ?TERMINAL to see
+if the user wants to quit. Use your interrupt character (usually ^C) to
+stop these commands.  If you hit ^C twice before ?TERMINAL is checked,
+then you'll get an ABORT back to the FORTH top level. If the FORTH program
+is waiting for keyboard input, you'll have to hit ^C twice and then hit
+a normal key to see this effect. Your Quit character (often ^\) still works
+to get you back to your shell.
+
+When you start FORTH up, it will tell you the number of blocks in the
+block file (either the default or the one you specified with -f). You can
+see a block with the LIST command: "3 LIST" will list block number 3. Block
+zero is special: because of a bug in the FORTH standard model, you can't
+see block zero until you've accessed many other blocks (where "many" is the
+number NSCR from "common.h").
+
+In any case, you can load the UNTHREAD utility (see below) with "1 LOAD"
+(because it starts on block 1), and the editor with "10 LOAD".
+
+FORTH uses "setbuf(stdout,0)" in "forth.c" to force standard output to
+be unbuffered.  If this call doesn't work for you, just remove it, and
+standard output will be line buffered. If that is the case, change
+EXPECT (in "forth.dic"): replace the EMIT call with DROP. Then you can
+call forth directly, without the stty stuff. You use your own erase and kill
+characters, but the editor won't work.
+
+SAVING THE FORTH ENVIRONMENT:
+
+When you have been working in FORTH for a while, you will have developed
+words which you'd like to save, without having to reload them from the
+block file all the time. The word SAVE will save the current core image on
+a file, normally "forth.sav", and exit. The -s flag changes the save
+file name.
+
+When you start FORTH, the core file (either "forth.cor" or the one specified
+with -c) is checked to see if it is a saved image or a bootstrapped image.
+If it's a saved image, execution begins from the spot it left off from.
+If it's bootstrapped (fresh out of nf), execution begins at COLD.
+
+SUMMARY OF COMMAND-LINE OPTIONS:
+
+-t[n]		trace; n is a digit from 0 to 9, default 0.
+
+        Each time through the inner interpreter, a line will be printed
+out showing the current stack pointer, the top n stack elements
+(topmost at the left), the current interpretive pointer (ip), an indent
+to reflect the current nesting depth (actually the return-stack depth),
+and the name of the word about to be executed. N is the "trace depth";
+see DOTRACE below.
+
+-d[n]		debug; n is a digit from 0 to 9, default 0.
+
+	Like -t, -d prints out the trace line each time through the inner
+interpreter.  Unlike -t, it will then wait for input from the terminal. If
+you hit newline (Return, CR, etc.) it will proceed. If you type any key
+followed by newline, it will dump the current memory image to the dump file,
+usually "forth.dmp", and then continue.
+
+-n		no setbuf.
+	If -n is present, the setbuf(stdout,NULL) call which makes stdout
+unbuffered instead of line-buffered will not be executed. This is useful if
+you intend to do debugging with -t, -d, or the TRON command (see below).
+
+-p xxxx		breakPoint.
+	Breakpoints are enabled, and one is set at address xxxx (in hex).
+Each time through the inner interpreter, the ip address is checked against
+this breakpoint address. If they match, "Breakpoint" is printed, along with
+the current stack pointer and the entire contents of the stack, with the
+topmost element at the left.
+
+-c corename	set the core file name
+	The memory image will be read from this file instead of the default,
+which is usually "forth.cor".
+
+-b blockname	set the block file name
+	This file will be used as the block file for disk reads and writes,
+instead of the default block file, which is usually "forth.blk".
+
+-s savename	set the core-save file name
+	This file will be created or overwritten upon execution of the (SAVE)
+primitive (which is called by the SAVE command).  It will contain a core image
+(just like forth.cor or the -c name) which reflects the current status at the
+time of the save. If this file is used as input (renamed to "forth.cor" or
+used in -c later), the FORTH system will restart right where it left off.
+Note that -c and -s MAY use the same name.
+
+DEPARTURES FROM THE figFORTH-79 STANDARD:
+---------- ---- --- -------- -- --------
+
+There are two features of the FORTH-79 standard which are unimplemented in
+this system: the <BUILDS ... DOES> construct and VOCABULARIES. Both of these
+are unimplemented simply because I couldn't understand the documentation
+sufficiently to implement them.  In any case, they do not affect the operation
+of FORTH, except inasmuch as the dictionary is simply a flat stack structure,
+and defining-words using DOES simply don't work.
+
+EXTENSIONS FROM THE figFORTH-79 STANDARD:
+---------- ---- --- -------- -- --------
+
+I grew a FORTH implementation from the Z80 figFORTH standard, and found the
+following extensions to be vital to my sanity as a programmer and developer.
+
+CASE c1 OF action1 ENDOF c2 OF action2 ENDOF default-action ENDCASE
+
+This construct comes from Doctor Dobb's Journal, Number 59, September, 1984,
+in an article by Ray Duncan. 
+
+I used to find that nesting IFs to emulate a CASE structure was the most
+difficult part of programming in FORTH, but now I don't have to mess with
+it any more.
+
+\ (backslash)
+
+This word begins a comment which extends to the end of the current line.
+This is only meaningful while loading, and causes an error if you are not
+loading.  It amounts to an open-paren where the end of the line is the closing
+paren. This, too, comes from Dr. Dobb's Journal, Number 59, in a different
+article, by Henry Laxen.
+
+TRON, TROFF, DOTRACE
+
+These provide tracing facilities for C-FORTH.  TRON takes one parameter, which
+is the number of stack elements to show. TROFF disables tracing. DOTRACE
+traces once, using the most recent depth value (from TRON or -tn on the command
+line). TRON will have no effect (but will still consume its argument) if
+the FORTH system was compiled without the TRACE flag set. DOTRACE, however,
+will still trace one line as advertised.
+
+REFORTH
+
+This word is useful when loading screens, to get the user's input. It
+reads one line from the terminal (with QUERY) and interprets it (with
+INTERPRET), then returns to the caller. This is used in the editor (see
+below) to read in the user's terminal type. This is yet another construct
+from Ray Duncan's article in Dr. Dobb's Journal, Number 59.
+
+ALIAS		usage: ALIAS NEW OLD
+
+This word is used to change the meaning of an existing word, after it
+has been used in defining other words.  Say you want to change EMIT so
+it forces a CR when the current column (user var OUT) equals the number
+of characters per line (constant C/L). The current definition of EMIT
+is:
+
+: EMIT
+  (EMIT)
+  1 OUT !+
+;
+
+You could define a new word, NEWEMIT, as follows:
+
+: NEWEMIT
+  OUT @ C/L = IF
+    CR
+  THEN
+  (EMIT)
+  1 OUT +!
+;
+
+and use ALIAS NEWEMIT EMIT to make all previous references to EMIT execute
+NEWEMIT instead. This is accomplished by making the definition of EMIT read:
+
+: EMIT
+  NEWEMIT
+;
+
+(Note that my CR sets OUT to zero, so this really would work.)
+
+NOTES ON THE BOOTSTRAP DICTIONARY:
+----- -- --- --------- ----------
+
+The contents of forth.dic describe the initial FORTH dictionary. There are
+several types of things in this file; they will be described by example.
+
+PRIM (EMIT) 12		(primitive)
+
+This declares a primitive called "(EMIT)", with an execute-code of 12. This
+execute-code is an index into the great switch statement in the inner
+interpreter, next(). In a real FORTH system, this would be an address where
+the actual code for the (EMIT) primitive resided.
+
+To add primitives, you must do the following:
+1. Add the primitive to forth.dic, using an unused execute-code.
+
+2. Come up with a name for that primitive which is a legal C identifier.
+   Convention for parenthesis, like (EMIT), is PEMIT. For brackets, BEMIT.
+   For slash (like "C/L") is CSLL, where SL stands for slash.
+
+3. Add the C identifier name to "forth.h", with the execute-code as its
+   value, like this:
+
+	#define PEMIT 12
+
+4. In "prims.c", add the code for the primitive, as a function with
+   the same name as the #define above, except in lower case:
+
+	pemit()
+	{
+		putchar(pop());
+	}
+
+5. In "forth.c", tack another case onto the switch statement in next():
+
+			case PEMIT: pemit(); break;
+
+6. Recompile (preferably with make). You will need to recompile everything
+   but nf (which uses nf.c, lex_yy.c, and common.h, none of which you
+   changed). That is, you need to regenerate "forth" from forth.c, prims.c,
+   forth.h, and prims.h, and "forth.cor" by throwing "forth.dic" at nf.
+
+There is one special primitive: EXECUTE must be primitive number zero, since
+it violates structure and jumps into the middle of next(). It is handled as
+a special case in the code for NEXT, and it must be primitive number zero.
+
+So much for primitives; there are other things in the forth.dic file:
+
+CONST C/L 64	(constant)
+
+Define constants with the word CONST followed by the name of the constant
+and its value.
+
+USER OUT 36	(user variable)
+
+Define user variables with the word USER followed by the name of the variable
+followed by the offset in the user-variable list of that variable.
+
+The cold-start values for user variables are defined in common.h; they
+get copied into the initial forth.dic by nf, into the "cold-start defaults"
+area of memory.  They are copied from there into the first few user-variable
+locations by COLD.
+
+VAR USE 0	(variable)
+
+Define variables with the word VAR followed by the name of the variable
+followed by its initial value.
+
+: EMIT		(colon-definition)
+
+Begin colon-definitions with a colon (of course), followed by the name of
+the word.  Follow that with the words which make up the definition, ending
+with ; for normal words or ;* for immediate words.
+
+There are two special colon-definitions: {NULL} and COLD. {NULL} is a special
+symbol which, when it is the name for a colon-definition, gets translated into
+a single null byte; the special name '\0'.  This is necessary since you
+can't type a null byte into a file, and C would mess up anyway, thinking
+the null was a terminator and not part of the string.  COLD is a special word
+in that it MUST BE DEFINED. The bootstrapper, nf, compiles the CFA of COLD
+into a special place in low memory, where the interpreter knows it can
+start executing threaded code.
+
+LABEL 
+
+Labels are used as the targets of branches. They are handled in much the
+same way as colon definitions and other words in the dictionary, in terms
+of forward referencing and so on. For this reason, LABELS MUST BE UNIQUE
+WORDS. You can't have a label which is the same as any other word in the
+dictionary, or you'll get a "word redefined" error (or worse!).
+
+Since the "nf" preprocessor does not execute FORTH code, it does not
+have the higher-level FORTH constructs like begin .. until or
+do .. loop. These must be implemented by the user, using the primitives
+BRANCH (unconditional branch), 0BRANCH (branch on top-of-stack == 0),
+(DO) (start a DO construct), and (LOOP) and (+LOOP) (the primitives
+which end loop constructs).  Each of BRANCH, 0BRANCH, (LOOP), and (+LOOP)
+should be followed by one of two things: a signed offset, where a zero
+offset branches to the address of the BRANCH (etc.) instruction; or
+a label tag, which will be compiled as the appropriate offset from the
+current location.
+
+A FORTH word with a loop might look like this:
+
+: ONE-TO-TEN
+  10 0 DO
+    I .
+  LOOP
+;
+
+This would be entered into the "forth.dic" file as follows:
+
+: ONE-TO-TEN
+  LIT 10 0 (DO)
+LABEL LOOP1
+    I .
+  (LOOP) LOOP1
+;
+
+Note the placement of the LABEL directive AFTER the (DO). Note also the use
+of LIT before 10, but not before 0. See below under LIT for more details.
+
+The branches are used to implement IF ... ELSE ... ENDIF constructs, as
+well as conditional looping like BEGIN ... WHILE ... REPEAT and
+BEGIN ... UNTIL.  Ordinary programming practices are called for here,
+with such standbys as branching over the "TRUE" branch of the IF when
+the predicate is false, and branching over the "FALSE" part after the
+TRUE part has executed (if the predicate was true).  If you need more
+guidance, study forth.dic, or don't bother.
+
+" (quotation mark)
+
+The quotation mark begins and ends a "STRING LITERAL", which is compiled
+into the dictionary as a count byte followed by the bytes in the string,
+from left to right.  This is useful for the primitive (."), which expects
+a string of this form to follow it in the dictionary.  Within quotation
+marks, a backslash (\) will escape any character, including a quotation
+mark or another backslash, so:
+
+	"He said, \"Backslash (\\) is best.\""
+		produces
+	[33] He said, "Backslash (\) is best."
+
+where [33] is the length count.
+
+Note that backslash escape conventions like \n, \t, etc. DO NOT WORK
+IN STRING LITERALS. This is a bug, not a feature.
+
+'x' (character literal surrounded by apostrophes)
+
+Character-literal translation is done between single quotes, with the
+following effects:
+
+	Text	produces
+	'A'	   the value of the character A.
+	'\b'	   system-dependent backspace character
+	'\f'			    form-feed 
+	'\n'			    newline
+	'\r'			    carriage return
+	'\t'			    tab
+	'\\'	   the value of the character backslash
+	'''	   the value of the character apostrophe.
+
+These values are only meaningfully used after LIT commands; see below.
+
+LIT
+
+LIT must be used before all literal values in the dictionary, just as it
+is used (though the user doesn't see it) when words are defined. The
+forth.dic file, after all, represents a de-compiled FORTH memory image.
+It has all the BRANCHes and (LOOP)s showing, and it also has LITs showing.
+
+In the above example for looping, LIT was used before 10, but not before
+0. This is because "0" is defined a a CONSTant earlier in the forth.dic
+file.  To keep this straight, you should keep the following in mind:
+When you are in the middle of a definition, each word you type will have
+its CFA compiled into the dictionary.  If the word you type is not defined
+yet, nf looks at its "hint" about the string of characters: do they form a
+number, like a one and a zero form ten?  Do they form a hexadecimal number,
+like 0x10? Is it an octal literal, like 077? Is it a character literal, 
+like 'A'? If none of these is the case, then a zero is compiled as a place
+holder, and the word is considered a FORWARD REFERENCE to something yet to
+be defined. 
+
+Yes, forward references are handled, and the distinction of
+defined words and labels is preserved: labels, instead of compiling their
+CFA into the dictionary, compile the offset of their CFA from the current
+dictionary pointer (minus one). If, at the end of the input file, there
+are still unresolved forward references, they will be listed. If the
+words containing the forward references are never executed, there will
+be no problem. If those words ARE executed, FORTH will bomb with a message
+like "Attempt to execute illegal primitive."
+
+One snag is that you have to remember what numbers are defined as CONSTants,
+and what numbers aren't. If nf sees "LIT 1" it will compile the CFA of LIT,
+then the CFA of 1, because 1 has already been defined as a constant.
+
+LIT must precede decimal, hex, octal, and character literals, but not 
+string literals.  If one of these literals is not preceded by LIT, a
+warning is issued, since this is unusual behavior. No warning is issued
+if LIT is succeeded by something other than a literal-class item, because
+that is not so unusual.
+
+
+INSTALLER'S GUIDE FOR THE SCREEN EDITOR:
+--------- - ----- --- --- ------ ------
+
+This is an editor which I wrote on my Osborne 1, which has a memory-mapped
+display. I hacked out that part and hacked in the screen updating using .LINE,
+but at anything lower than 9600 BAUD I expect this to be intolerable.
+
+When you get FORTH at your site, you will have to edit the line-file to
+include functions which clear the screen, locate the cursor, and enter and
+exit standout mode, named CLS, LOCATE, STANDOUT, and STANDEND, respectively.
+The trick for installing this is to put those functions in an unused screen
+(screens 8 and 9 are perfect for this), and place a CONSTANT in screen 10
+which is the name of the terminal (like "H19" or "ACT5") and has a value
+which is the number of the screen you put its definition in.  VT100 and
+ADM5 are included as models, in screens 6 and 7. ADM5 actually covers
+a broad range of terminals, from the old ADM3A to the TVI920C, though
+standout might not work the same any more. The two words STANDOUT and
+STANDEND can be null words, anyway.
+
+USER'S GUIDE FOR THE EDITOR:
+---- - ----- --- --- ------
+
+This is a screen editor for FORTH screens. It will alter the file
+"forth.blk" in the current directory, or whatever the installer set
+the default blockfile to be, or whatever you specify on the command
+line with the "-b file" switch.
+
+You call a screen up with the EDIT command:
+
+	3 EDIT
+
+will begin editing screen 3.  The file starts with screen 0, but, due to
+a bug in figFORTH which I have carefully preserved (:-), you can't see
+screen 0 until you've edited several others -- as many as fit in memory,
+in fact. This number is 5 at the outset, but can be as low as 2 or as
+many as your installer's whim dictated. In any case, stick with screens
+numbered from 1 to the size of the block file as displayed when you
+started FORTH. 
+
+When you start editing, the screen will clear, and the screen you asked
+for will appear. FORTH "screens" are, by convention and convenience,
+sixteen lines by sixty-four characters, for a total of 1K per screen.
+At the bottom of the screen being edited will be the word SCREEN and
+this screen's number.
+
+The keys (as I've distributed the editor) match WordStar, to some extent.
+The cursor movement keys do, at any rate: ^E, ^D, ^X, ^S form a movement
+triangle at the left-hand side of the keyboard, moving one character or
+line at a time. The outer reaches of this triangle move even farther: 
+^A and ^F move one word backward and forward, and ^R and ^C move one
+SCREEN backward and forward. If ^C is already your interrupt character,
+don't panic: use ESC-C (escape is a meta-prefix like in Emacs). If your
+network won't let you send ^S (like Sytek), ^H will do for backspace.
+
+To see all the key bindings, use the FORTH command DESCRIBE-BINDINGS.
+To make a binding, do this:
+	1. Type "BIND-TO-KEY function <CR>"  where function is the name
+	   of the command you want bound to a key, and <CR> means press
+	   return/newline.
+	2. The computer will print "KEY: " at which time you should
+	   strike the key you want to have that function bound to.
+	   If you want something bound to ESC plus something, just press
+	   escape followed by the key, exactly as you intend to use the
+	   key in practice.
+
+To see the binding for one key, use the command DESCRIBE-KEY. Again,
+you will be asked for the key you want described. Strike the key just
+as you normally do, with ESC before it if necessary.
+
+The initial bindings are on screens 27 and 28 of the block file.
+
+The editor is always in replace mode. That is, when you strike a key, it
+overwrites whatever was under the cursor.  There is no insert mode; I haven't
+gotten around to that.
+
+As you go around changing things, you are only changing the image of the
+screen which FORTH keeps in memory; you are not changing the block file.
+You can mark the current screen for updating to the blockfile with ^U.
+This only marks the screen; it won't be written to the blockfile until
+the space is needed again, or you explicitly FLUSH the memory buffers.
+Use ESC-F (press escape, then press capital F) to mark the current screen
+for updating, and then FLUSH all marked screens (including this one, now)
+to the block file. Once you've done that, the change is permanent.
+
+If you really mean to make a given change to a screen, mark it as updated
+(^U) right away. Countless hours have been wasted changing screens without
+marking them for writing, and then having that memory reused -- the changes
+are lost.
+
+You can leave the editor with ESC-Q (for Quit).  Be sure to do an ESC-F
+before you do, if you want to save what you have. You can never be sure
+if your changes will get written out if you don't. (Yes, I know this
+is an oversimplification.)
+
+You can leave FORTH by typing BYE.
+
+FINAL NOTES FROM THE AUTHOR:
+----- ----- ---- --- ------
+
+FORTH runs slowly. If anybody can make this turkey fly (without, of course,
+rewriting it in assembly language), more power to you.  It was done as a
+Junior project at Indiana University, but in fact I learned more about
+project management and programmer/systems staff interaction than I did
+about implementing FORTH (which I had done previously in 8080 assembly
+code). In that sense it was profitable, and, since it works, I see no reason
+not to distribute it to the network. If you have comments of praise,
+I can be reached through the summer of 1985 at the address below;
+after that, I MAY be at iuvax!apratt.  Comments of another nature
+are not enthusiastically solicited, and I do NOT expect to upgrade this
+implementation AT ALL, EVER. Sorry, but there will be no "Version 2" for 
+this baby. If I have left crucial points out of this documentation,
+and my (hopefully-well-commented) code doesn't provide the answer,
+I will reply and possibly improve this documentation.  But for the
+most part, you're on your own.
+
+As a parting shot, the inner interpreter's "switch" statement could
+be replaced by an array of functions, using the variable p as an
+index. I was not that ambitious, and I don't know if it would be faster
+than the table-lookup which my C compiler generates.
+
+					-- Allan Pratt
+					APRATT.PA@XEROX.ARPA
+
+QUICK SUMMARY OF FILES (THERE IS A MESS OF THEM!)
+
+Makefile	supposed to bring them all together
+b2l.c and b2l	filter to convert block-files into line-files for editing
+l2b.c and l2b	filter to convert line-files into block-files for FORTH
+
+common.h	This is a header file with configuration and common information
+		used by all C source files except lex.yy.c
+
+forth.h		Header file with primitive numbers in it, among other things
+forth.c		source code for the guts/support functions for the interpreter
+prims.h		Header file with macro definitions for primitives
+prims.c		source code for primitives too complex for macros
+
+		The above four files, plus common.h, contribute to the
+		executable "forth"
+
+nf.c		source for the bootstrapper, which interprets the dictionary
+		and generates an initial memory image for FORTH
+
+forth.lex	lex input for lexical analyzer used by nf.c
+forth_lx.h	header file used by lex_yy.c and nf.c
+lex_yy.c	lex output, modified (look at the Makefile)
+
+		The above four files, plus common.h, contribute to the
+		executable "nf", the preprocessor.
+
+forth.blk	This is the (default) block-file used by FORTH for its
+		editing- and load-screens
+
+forth.lin	This file usually resembles forth.blk, but is in a
+		format suitable for editing with emacs or vi: a header
+		line, followed by sixteen lines of trailing-blank-
+		truncated, newline-terminated text for each screen.
+
+		If one of forth.lin and forth.blk is out of date with
+		respect to the other, you can bring it back up to date
+		with blk2lin or lin2blk, above.
+
+forth.dic	This is a human-readable, pseudo-FORTH dictionary which
+		nf uses to generate the initial environment. It contains
+		forward references and no higher structures like DO..LOOP
+
+forth.cor	This is one output of nf: it contains the core image for
+		the FORTH environment, as dictated by common.h and forth.dic
+
+forth.sav	This is the file for holding core images saved with the (SAVE)
+		primitive. If FORTH is started with "-c forth.sav", the
+		image is restarted right where it left off.
+
+forth.map	This is another output of nf: it contains a human-readable
+		dump of the forth environment which nf generated. This can
+		be compared with the post-mortem dump which FORTH generates
+		in forth.dmp in certain cases.
+

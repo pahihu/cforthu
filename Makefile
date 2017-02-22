@@ -51,5 +51,5 @@ blk2lin$(EXE):	blk2lin.c
 
 clean:
 		$(RM) forth.cor forth.dmp forth.map
-		$(RM) lex_yy.c *.o
+		$(RM) *.o
 		$(RM) nf$(EXE) forth$(EXE) lin2blk$(EXE) blk2lin$(EXE)
