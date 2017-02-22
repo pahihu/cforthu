@@ -1,4 +1,5 @@
 CC = cc
+# CFLAGS = -m32 -g #-DDEBUG=1
 CFLAGS = -m32 -O1 #-DDEBUG=1
 EXE = # .exe
 

@@ -108,6 +108,7 @@ void pfind()	/* WORD TOP -- xx FLAG, where TOP is NFA to start at;
 		   FLAG is 1 if found. If not found, 0 alone is stacked. */
 {
     UCell  worka, workb, workc, current, word, match;
+    unsigned char cha, chb;
 
     current = pop ();
     word = pop ();
@@ -118,8 +119,14 @@ void pfind()	/* WORD TOP -- xx FLAG, where TOP is NFA to start at;
 	    workb = word + 1;
 	    workc = mem[word];	/* workc gets count */
 	    match = TRUE;	/* initally true, for looping */
-	    while (workc-- && match)
-		match = ((mem[worka++] & 0x7f) == (mem[workb++] & 0x7f));
+	    while (workc-- && match) {
+                cha = mem[worka++] & 0x7F;
+                chb = mem[workb++] & 0x7F;
+                match = cha == chb;
+                if (!match && isalpha(cha))
+                    match = tolower(cha) == tolower(chb);
+		/* match = ((mem[worka++] & 0x7f) == (mem[workb++] & 0x7f)); */
+            }
 	    if (match) {	/* exited with match TRUE -- FOUND IT */
 		push (worka + 2);		/* worka=LFA; push PFA */
 		push (mem[current]);		/* push length byte */

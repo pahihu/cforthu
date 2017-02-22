@@ -467,7 +467,7 @@ void memdump()		/* dump core. */
 	int i;	/* top of RAM */
 	Cell temp, tempb;
         int firstzero, nonzero;
-	char chars[9], outline[80], tstr[6];
+	char chars[9], outline[(2*CELL_BYTES)*9+9+8+1], tstr[2*(CELL_BYTES+2)];
 	FILE *dumpfile;
 
         firstzero = FALSE; nonzero = FALSE;

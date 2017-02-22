@@ -427,7 +427,7 @@ void writedict()		/* write memory to COREFILE and map
 {
     FILE   *outfile;
     int     i, temp, tempb, firstzero, nonzero;
-    char    chars[9], outline[80], tstr[6];
+    char    chars[9], outline[(2*CELL_BYTES)*9+9+8+1], tstr[2*(CELL_BYTES+2)];
 
     chars[8] = '\0';
     outfile = fopen(MAPFILE,"w");

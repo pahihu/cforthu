@@ -9,25 +9,26 @@
  * NOTE THAT THIS FORTH IMPLENTATION REQUIRES DCell TO BE TWICE THE SIZE OF Cell
  */
 
+/*
 typedef short          Cell;
 typedef unsigned short UCell;
 typedef long           DCell;
 typedef unsigned long  UDCell;
 typedef int            Word;
 
-#define CELL_2BYTES     1
 #define FMT_HEXCELL    "%04x"
+*/
 
-/*
 typedef int          Cell;
 typedef unsigned int UCell;
 typedef long long    DCell;
 typedef unsigned long long UDCell;
 typedef int          Word;
 
-#define CELL_4BYTES     1
-#define FMT_HEXCELL     "%08x"
-*/
+#define FMT_HEXCELL    "%08x"
+
+#define CELL_BYTES     (sizeof(Cell))
+
 
 #define TRUE 1
 #define FALSE 0
