@@ -219,7 +219,7 @@ void ustar()			/* u*: a b -- a*b.hi a*b.lo */
     /* (Cell) -1 is probably FFFF..., which is just what we want */
     push ((UCell)(c & (Cell) -1));	      /* low word of product */
 					      /* high word of product */
-    push ((Cell)((c >> (8*sizeof(Cell))) & (Cell) -1));
+    push (DCHIGH(c));
 }
 
 void uslash()		/* u/: NUM.LO NUM.HI DENOM -- REM QUOT */
@@ -231,13 +231,8 @@ void uslash()		/* u/: NUM.LO NUM.HI DENOM -- REM QUOT */
     denom = pop();
     numhi = pop();
     numlo = pop();
-    quot = ((((UDCell)numhi) << (8*sizeof(Cell))) 
-				+ (UDCell)numlo) 
-					/ (UDCell)denom;
-
-    remainder = ((((UDCell)numhi) << (8*sizeof(Cell))) 
-				+ (UDCell)numlo) 
-					% (UDCell)denom;
+    quot = ((UDCell)MKDCELL(numhi,numlo)) / (UDCell)denom;
+    remainder = ((UDCell)MKDCELL(numhi,numlo)) % (UDCell)denom;
 
     push (remainder);
     push (quot);
@@ -315,11 +310,11 @@ void dplus()			/* D+: double-add */
     blo = pop();
     ahi = pop();
     alo = pop();
-    a = ((DCell)ahi << (8*sizeof(Cell))) + (DCell)alo;
-    b = ((DCell)bhi << (8*sizeof(Cell))) + (DCell)blo;
+    a = MKDCELL(ahi,alo);
+    b = MKDCELL(bhi,blo);
     a = a + b;
     push ((UCell)(a & (Cell) -1));	        /* sum lo */
-    push ((Cell)(a >> (8*sizeof(Cell))));	/* sum hi */
+    push (DCHIGH(a));                           /* sum hi */
 }
 
 void subtract()			/* -: a b -- (a-b) */
@@ -337,11 +332,11 @@ void dsubtract()		/* D-: double-subtract */
     blo = pop();
     ahi = pop();
     alo = pop();
-    a = ((DCell)ahi << (8*sizeof(Cell))) + (DCell)alo;
-    b = ((DCell)bhi << (8*sizeof(Cell))) + (DCell)blo;
+    a = MKDCELL(ahi,alo);
+    b = MKDCELL(bhi,blo);
     a = a - b;
     push ((UCell)(a & (Cell) -1));	        /* diff lo */
-    push ((Cell)(a >> (8*sizeof(Cell))));	/* diff hi */
+    push (DCHIGH(a));                           /* diff hi */
 }
 
 void dminus()			/* DMINUS: negate a double number */
@@ -350,9 +345,9 @@ void dminus()			/* DMINUS: negate a double number */
     DCell a;
     ahi = pop();
     alo = pop();
-    a = -(((DCell)ahi << (8*sizeof(Cell))) + (DCell)alo);
-    push ((UCell)(a & (Cell) -1));		        /* -a lo */
-    push ((UCell)(a >> (8*sizeof(Cell)))); 	        /* -a hi */
+    a = -MKDCELL(ahi,alo);
+    push ((UCell)(a & (Cell) -1));		/* -a lo */
+    push ((UCell)DCHIGH(a));                    /* -a hi */
 }
 
 void over()			/* over: a b -- a b a */

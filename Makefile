@@ -1,6 +1,7 @@
 CC = cc
-# CFLAGS = -m32 -g #-DDEBUG=1
-CFLAGS = -m32 -O1 #-DDEBUG=1
+# CFLAGS = -m32 -O1 -DCELL_2BYTES=1
+CFLAGS = -m32 -O1 -DCELL_4BYTES=1
+# CFLAGS = -m64 -O1 -DCELL_8BYTES=1 #-DDEBUG=1
 EXE = # .exe
 
 test:		forth.cor forth$(EXE)

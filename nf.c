@@ -429,7 +429,8 @@ void writedict()		/* write memory to COREFILE and map
 			   	   to MAPFILE */
 {
     FILE   *outfile;
-    int     i, temp, tempb, firstzero, nonzero;
+    Cell    temp, tempb;
+    int     i, firstzero, nonzero;
     char    chars[9], outline[(2*CELL_BYTES)*9+9+8+1], tstr[2*(CELL_BYTES+2)];
 
     chars[8] = '\0';
@@ -463,7 +464,11 @@ void writedict()		/* write memory to COREFILE and map
     fclose (outfile);
 
 
+#ifdef CELL_8BYTES
+    printf ("Writing %s; DPBASE=%d; dp=%ld\n", COREFILE, DPBASE, dp);
+#else
     printf ("Writing %s; DPBASE=%d; dp=%d\n", COREFILE, DPBASE, dp);
+#endif
 
     if ((outf = fopen (COREFILE, "w")) == NULL) {
 	printf ("nf: can't open %s for output.\n", COREFILE);

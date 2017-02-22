@@ -9,7 +9,7 @@
  * NOTE THAT THIS FORTH IMPLENTATION REQUIRES DCell TO BE TWICE THE SIZE OF Cell
  */
 
-/*
+#ifdef CELL_2BYTES
 typedef short          Cell;
 typedef unsigned short UCell;
 typedef long           DCell;
@@ -17,8 +17,9 @@ typedef unsigned long  UDCell;
 typedef int            Word;
 
 #define FMT_HEXCELL    "%04x"
-*/
+#endif
 
+#ifdef CELL_4BYTES
 typedef int          Cell;
 typedef unsigned int UCell;
 typedef long long    DCell;
@@ -26,8 +27,28 @@ typedef unsigned long long UDCell;
 typedef int          Word;
 
 #define FMT_HEXCELL    "%08x"
+#endif
 
-#define CELL_BYTES     (sizeof(Cell))
+#ifdef CELL_8BYTES
+typedef long          Cell;
+typedef unsigned long UCell;
+typedef long          DCell;
+typedef unsigned long UDCell;
+typedef long          Word;
+
+#define FMT_HEXCELL    "%016lx"
+#define MKDCELL(x,y)   ((DCell)(y))
+#define DCHIGH(d)      ((Cell) 0)
+#endif
+
+
+#define CELL_BYTES   (sizeof(Cell))
+#ifndef MKDCELL
+#define MKDCELL(x,y) (((DCell)(x) << (8*CELL_BYTES)) + (DCell)(y))
+#endif
+#ifndef DCHIGH
+#define DCHIGH(d)    ((Cell)(((d) >> (8*CELL_BYTES)) & (Cell) -1))
+#endif
 
 
 #define TRUE 1

@@ -282,13 +282,19 @@ void dotrace()
 	Cell worka, workb, workc;
 	putchar('\n');
 	if (tracedepth) {		/* show any stack? */
-		printf("sp: %04x (", csp);
+                puts("sp: ");
+                printf(FMT_HEXCELL, csp);
+                puts(" (");
 		worka = csp;
-		for (workb = tracedepth; workb; workb--)
-			printf("%04x ",(UCell) mem[worka++]);
+		for (workb = tracedepth; workb; workb--) {
+			printf(FMT_HEXCELL,(UCell) mem[worka++]);
+                        putchar(' ');
+                }
 		putchar(')');
 	}
-	printf(" ip=%04x ",ip);
+        puts(" ip=");
+        printf(FMT_HEXCELL, ip);
+        putchar(' ');
 
 	if (mem[R0]-rsp < RS_SIZE && mem[R0] - rsp > 0) /* if legal rsp */
 	    for (worka = mem[R0]-rsp; worka; worka--) { /* indent */
@@ -401,7 +407,7 @@ char *argv[];
 
 	if ((mem = (Cell *)calloc(size, sizeof(*mem))) == NULL) {
 		fprintf(stderr, "Forth: unable to malloc(%d,%d)\n",
-			size, (int)sizeof(*mem));
+			(int)size, (int)sizeof(*mem));
 		exit(1);
 	}
 
@@ -410,7 +416,7 @@ char *argv[];
 
 	if (fread(mem+1, sizeof(*mem), size-1, fp) != size-1) {
 		fprintf(stderr, "Forth: not %d bytes on %s.\n",
-			size, cfilename);
+			(int)size, cfilename);
 		exit(1);
 	}
 
@@ -478,7 +484,11 @@ void memdump()		/* dump core. */
 	dumpfile = fopen(DUMPFILE,"w");
 
 	fprintf(dumpfile,
+#ifdef CELL_8BYTES
+		"CSP = 0x%lx  RSP = 0x%lx  IP = 0x%lx  W = 0x%lx  DP = 0x%lx\n",
+#else
 		"CSP = 0x%x  RSP = 0x%x  IP = 0x%x  W = 0x%x  DP = 0x%x\n",
+#endif
 		csp, rsp, ip, w, mem[DP]);
 
 	for (temp = 0; temp < mem[LIMIT]; temp += 8) {
