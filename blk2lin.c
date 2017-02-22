@@ -11,6 +11,7 @@ int main()
 	int i, j, screen;
 	char buf[64];	/* max line size */
 
+        screen = 0;
 	while(1) {
 	    printf("------------------ SCREEN %d ------------------\n",
 			screen++);

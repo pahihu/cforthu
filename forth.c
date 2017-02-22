@@ -39,7 +39,7 @@
 UCell csp, rsp, ip, w;
 Cell *mem;
 unsigned char *bytmem;
-int trace, tracedepth, debug, breakenable, qtermflag, forceip;
+int trace, tracedepth, debug, breakenable, qtermflag = FALSE, forceip;
 Cell breakpoint;
 int nobuf;
 FILE *blockfile;
