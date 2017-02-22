@@ -1,0 +1,494 @@
+------------------ SCREEN 0 ------------------
+
+
+================================================================
+||      C-CODED FIG-FORTH for UNIX* systems by ALLAN PRATT    ||
+||                                                            ||
+||      INCLUDES \ COMMENTS,                                  ||
+||               CASE..OF..ENDOF..ENDCASE                     ||
+||               UNTHREAD, EDITOR                             ||
+||               REFORTH,                                     ||
+||               "ALIAS NEW OLD"                              ||
+||      AND OTHER NICE THINGS.                                ||
+|| ( * UNIX is a trademark of Bell Labs )                     ||
+================================================================
+
+
+
+------------------ SCREEN 1 ------------------
+( UNTHREAD VERSION 2 / SCREEN 1 OF 3 )
+: DOQUOTE                       \ AFTER (.")
+  34 EMIT WORDSIZE + DUP C@ OVER 1+ SWAP TYPE
+  34 EMIT SPACE DUP C@ + 1+ ;
+
+: DOLIT         \ AFTER LIT, BRANCHES, AND (LOOP)S
+  WORDSIZE + DUP @ . WORDSIZE + ;
+
+
+
+
+-->
+
+
+
+
+------------------ SCREEN 2 ------------------
+( UNTHREAD VERSION 2 / SCREEN 2 OF 3 )
+: DOWORD        \ MAIN UNTHREADER
+  DUP @ WORDSIZE + DUP NFA ID.  CASE
+    ' LIT       OF DOLIT        ENDOF
+    ' 0BRANCH   OF DOLIT        ENDOF
+    ' BRANCH    OF DOLIT        ENDOF
+    ' (LOOP)    OF DOLIT        ENDOF
+    ' (+LOOP)   OF DOLIT        ENDOF
+    ' (.")      OF DOQUOTE      ENDOF
+    ' ;S        OF DROP 0       ENDOF \ LEAVE 0
+    DUP         OF WORDSIZE +   ENDOF \ DEFAULT
+  ENDCASE ;
+
+-->
+
+
+------------------ SCREEN 3 ------------------
+( UNTHREAD VERSION 2 / SCREEN 3 OF 3 )
+: UNTHREAD      \ USAGE: UNTHREAD WORD
+  [COMPILE] ' DUP CFA @
+  ' DOWORD CFA @ <> 27 ?ERROR   \ NOT THREADED
+  CR ." : " DUP NFA ID. SPACE
+  BEGIN
+    DOWORD
+    OUT @ C/L > IF CR THEN
+    -DUP WHILE
+  REPEAT ;
+
+CR ." UNTHREAD READY"
+
+;S
+
+
+------------------ SCREEN 4 ------------------
+( ERROR MESSAGES )
+EMPTY STACK
+
+
+ISN'T UNIQUE
+
+
+FULL STACK
+
+
+
+
+
+
+
+C-CODED figFORTH by ALLAN PRATT / APRIL 1985
+------------------ SCREEN 5 ------------------
+MSG # 16
+MUST BE COMPILING
+MUST BE EXECUTING
+UNMATCHED STRUCTURES
+DEFINITION NOT FINISHED
+WORD IS PROTECTED BY FENCE
+MUST BE LOADING
+
+CONTEXT ISN'T CURRENT
+
+
+ALIAS: NOT A COLON DEFINITION
+ALIAS: CAN'T ALIAS A NULL WORD
+
+
+
+------------------ SCREEN 6 ------------------
+." LOADING EDITOR FOR VT100" CR
+
+: CLS                        \ clear screen and home cursor
+  27 EMIT ." [2J" 27 EMIT ." [H"
+;
+
+: LOCATE   \ 0 16 LOCATE positions cursor at line 16, column 0
+  27 EMIT 91 EMIT 1+ 1 .R 59 EMIT 1+ 1 .R 72 EMIT ;
+
+: STANDOUT                   \ This can be a null word
+  27 EMIT ." [7m" ;
+
+: STANDEND                   \ This can be a null word, too.
+  27 EMIT ." [m" ;
+
+;S   \ CONTINUE LOADING EDITOR
+------------------ SCREEN 7 ------------------
+." LOADING EDITOR FOR ADM5" CR
+
+: CLS 26 EMIT ;
+
+: LOCATE
+  27 EMIT 61 EMIT
+  32 + EMIT 32 + EMIT ;
+
+
+: STANDOUT
+  27 EMIT 71 EMIT ;
+
+: STANDEND
+  27 EMIT 71 EMIT ;
+
+;S   \ continue loading editor
+------------------ SCREEN 8 ------------------
+( Reserved for more terminals; set the name of the terminal
+  as a constant in screen 10 )
+;S
+
+
+
+
+
+
+
+
+
+
+
+
+
+------------------ SCREEN 9 ------------------
+( Reserved for more terminals. Set the name of the terminal
+  as a constant in screen 10 )
+;S
+
+
+
+
+
+
+
+
+
+
+
+
+
+------------------ SCREEN 10 ------------------
+( EDITOR -- SCREEN 1 OF 19 -- VARIABLES )
+DECIMAL
+0 VARIABLE ROW          0 VARIABLE COL
+0 VARIABLE EDIT-SCR     0 VARIABLE SCREEN-IS-MODIFIED
+0 VARIABLE MUST-UPDATE  0 VARIABLE LAST-KEY-STRUCK
+0 VARIABLE CURSOR-IS-DIRTY
+
+0 VARIABLE KEYMAP  WORDSIZE 255 *  ALLOT
+           KEYMAP  WORDSIZE 256 *  ERASE
+
+0 VARIABLE SCR-BUFFER B/BUF B/SCR * WORDSIZE - ALLOT
+
+( TERMINAL CONSTANTS -- VALUE IS SCREEN NUMBER TO LOAD )
+6 CONSTANT VT100   7 CONSTANT ADM5
+
+-->
+------------------ SCREEN 11 ------------------
+( EDITOR -- SCREEN 2 OF 19 -- SCREEN STUFF )
+
+CR ." ENTER THE TYPE OF TERMINAL YOU ARE USING. TYPE ONE OF:"
+CR ."      VT100   ADM5" CR   \ list the constants from scr 10
+
+REFORTH          \ this word gets & interprets one line.
+LOAD             \ load the right screen; VT100 = 6, ADM5 = 7
+
+: EXIT-EDIT
+  0 16 LOCATE QUIT ;
+: ABORT-EDIT
+  0 15 LOCATE MESSAGE ;
+
+: BIND-ADDR          ( C -- ADDR where binding is stored )
+  WORDSIZE * KEYMAP + ;
+-->
+------------------ SCREEN 12 ------------------
+( EDITOR -- SCREEN 3 OF 19 -- I/O )
+
+: ^EMIT        ( OUTPUT W/ESC AND ^ )
+  DUP 127 > IF ." ESC-" 128 - THEN
+  DUP 32  < IF ." ^" 64 + THEN
+  EMIT ;
+
+: BACK-WRAP     ( DECR EDIT SCR. AND PUT CURSOR AT BOTTOM )
+  EDIT-SCR -- C/L 1- COL ! 15     ROW ! 1 MUST-UPDATE ! ;
+: FORWARD-WRAP  ( INCR EDIT SCR. AND PUT CURSOR AT TOP )
+  EDIT-SCR ++ 0 COL ! 0 ROW ! 1 MUST-UPDATE ! ;
+: ED-KEY       ( INPUT W/ESC FOR HI BIT )
+  KEY DUP 27 = IF DROP KEY 128 + THEN
+  DUP LAST-KEY-STRUCK ! ;
+
+-->
+------------------ SCREEN 13 ------------------
+( EDITOR -- SCREEN 4 OF 19 -- BINDING WORDS )
+: (BIND)         ( CFA K -- STORES INTO KEYMAP )
+  BIND-ADDR !
+;
+
+: BIND-TO-KEY    ( "BIND-TO-KEY NAME" ASKS FOR KEY )
+  [COMPILE] ' CFA
+  ." KEY: " ED-KEY DUP ^EMIT SPACE
+  (BIND) ;
+
+: DESCRIBE-KEY
+  ." KEY: " ED-KEY DUP ^EMIT SPACE
+  BIND-ADDR @ -DUP IF NFA ID.
+                        ELSE ." SELF-INSERT"
+                        THEN SPACE ;
+-->
+------------------ SCREEN 14 ------------------
+( EDITOR -- SCREEN 5 OF 19 -- PRIMITIVE OPS )
+
+: PREV-LINE ROW @      IF ROW -- 1 CURSOR-IS-DIRTY !
+                       ELSE BACK-WRAP THEN ;
+: NEXT-LINE ROW @ 15 < IF ROW ++ 1 CURSOR-IS-DIRTY !
+                       ELSE FORWARD-WRAP THEN ;
+: BEGINNING-OF-LINE 0 COL ! 1 CURSOR-IS-DIRTY ! ;
+: END-OF-LINE      C/L 1- COL ! 1 CURSOR-IS-DIRTY ! ;
+: EDIT-CR NEXT-LINE BEGINNING-OF-LINE ;
+: PREV-CHAR COL @ IF COL -- 1 CURSOR-IS-DIRTY !
+                  ELSE END-OF-LINE PREV-LINE
+                  THEN ;
+: NEXT-CHAR COL @ C/L 1- < IF COL ++ 1 CURSOR-IS-DIRTY !
+                           ELSE EDIT-CR
+                           THEN ;
+-->
+------------------ SCREEN 15 ------------------
+( EDITOR -- SCREEN 6 OF 19 -- MORE LOW-LEVEL )
+: THIS-CHAR
+  ROW @ EDIT-SCR @ (LINE) DROP COL @ + ;
+
+: PUT-CHAR THIS-CHAR C! 1 MUST-UPDATE ! ;
+
+: INSERT-CHAR PUT-CHAR NEXT-CHAR ;
+
+: SELF-INSERT
+  LAST-KEY-STRUCK @ DUP THIS-CHAR C! EMIT
+  NEXT-CHAR
+;
+
+DECIMAL -->
+
+
+------------------ SCREEN 16 ------------------
+( EDITOR -- SCREEN  7 OF 19 -- DISPLAY STUFF )
+HEX
+: SHOWSCR         ( N -- SHOWS SCREEN N )
+   CLS
+   0 10 LOCATE STANDOUT ." SCREEN " DUP . STANDEND
+   10 0 DO
+        0 I LOCATE
+           I OVER .LINE
+        LOOP DROP ;
+
+: REDRAW EDIT-SCR @ SHOWSCR ;
+
+: ?REDRAW
+  MUST-UPDATE @ IF REDRAW 0 MUST-UPDATE !
+                          1 CURSOR-IS-DIRTY ! THEN ;
+DECIMAL -->
+------------------ SCREEN 17 ------------------
+( EDITOR -- SCREEN  8 OF 19 -- EXECUTE-KEY )
+
+: EXECUTE-KEY        ( K -- EXECUTE THE KEY )
+  WORDSIZE * KEYMAP + @ -DUP IF
+                           EXECUTE
+                        ELSE
+                           SELF-INSERT
+                        THEN
+;
+: ?PLACE-CURSOR
+  CURSOR-IS-DIRTY @ IF
+    COL @ ROW @ LOCATE
+    0 CURSOR-IS-DIRTY !
+  THEN
+;
+-->
+------------------ SCREEN 18 ------------------
+( EDITOR -- SCREEN  9 OF 19 -- TOP-LEVEL )
+: TOP-LEVEL
+  BEGIN
+    ?REDRAW ?PLACE-CURSOR ED-KEY EXECUTE-KEY
+  AGAIN
+;
+
+
+: EDIT
+  EDIT-SCR ! CLS
+  0 ROW ! 0 COL ! 1 MUST-UPDATE !
+  TOP-LEVEL
+;
+
+
+-->
+------------------ SCREEN 19 ------------------
+( EDITOR -- SCREEN 10 OF 19 -- HIGH-LEVEL KEY WORDS )
+
+: UPDATE-SCR                 ( BOUND TO ^U )
+  EDIT-SCR @ B/SCR * DUP B/SCR + SWAP DO
+    I BLOCK DROP UPDATE
+  LOOP ;
+
+
+: NEXT-SCR                   ( ^C and ESC-C )
+  EDIT-SCR ++   1 MUST-UPDATE !
+;
+
+: PREV-SCR                   ( ^R and ESC-R )
+  EDIT-SCR @ 0= IF EDIT-SCR ++ THEN
+  EDIT-SCR --   1 MUST-UPDATE ! ;
+-->
+------------------ SCREEN 20 ------------------
+( EDITOR -- SCREEN 11 OF 19 -- HIGH-LEVEL )
+HEX
+: TAB-KEY        ( INCREMENT TO NEXT TAB STOP )
+  COL @ 8 + F8 AND DUP C/L < IF COL ! THEN ;
+
+DECIMAL
+
+: REEDIT         ( RESTART EDITING )
+  EDIT-SCR @ EDIT ;
+
+: ERRCONV
+  ERRBLK @ DUP B/SCR / SWAP B/SCR MOD DUP +
+  ERRIN @ C/L @ / + ;
+: ERREDIT ERRCONV ROW ! EDIT-SCR ! BEGINNING-OF-LINE
+  1 MUST-UPDATE ! CLS TOP-LEVEL ;
+-->
+------------------ SCREEN 21 ------------------
+( EDITOR -- SCREEN 12 OF 19 -- )
+
+: UPDATE-AND-FLUSH
+  UPDATE-SCR FLUSH ;
+
+: DEL-TO-END-OF-LINE
+  COL @ ROW @ EDIT-SCR @  ( SAVE THESE )
+  C/L COL @ DO BL INSERT-CHAR LOOP
+  EDIT-SCR ! ROW ! COL !  ( RESTORE SAVED VALUES )
+;
+
+
+
+
+
+-->
+------------------ SCREEN 22 ------------------
+( EDITOR -- SCREEN 13 OF 19 -- MORE HIGH-LEVEL )
+
+: CLEAR-SCREEN
+  EDIT-SCR @ B/SCR * DUP B/SCR + SWAP DO
+     I BLOCK B/BUF BLANKS
+  LOOP
+  1 MUST-UPDATE !
+;
+
+: DESCRIBE-BINDINGS     ( SHOWS ALL BINDINGS )
+  256 0 DO              ( INTERESTING ONES, ANYWAY )
+    I BIND-ADDR @
+    -DUP IF CR I ^EMIT SPACE NFA ID. THEN
+    ?TERMINAL IF LEAVE THEN
+  LOOP CR ;
+-->
+------------------ SCREEN 23 ------------------
+( EDITOR -- SCREEN 14 OF 19 -- WORD MOVEMENT )
+: NEXT-WORD
+  THIS-CHAR C@ BL = IF PREV-CHAR THEN   ( BUG FIX )
+  BEGIN NEXT-CHAR THIS-CHAR C@ BL = UNTIL
+  BEGIN NEXT-CHAR THIS-CHAR C@ BL <> UNTIL ;
+
+: PREV-WORD
+  BEGIN PREV-CHAR THIS-CHAR C@ BL <> UNTIL
+  BEGIN PREV-CHAR THIS-CHAR C@ BL = UNTIL
+  NEXT-CHAR ;
+
+
+
+
+
+-->
+------------------ SCREEN 24 ------------------
+( EDITOR -- SCREEN 15 OF 19 -- BUFFER CONTROL )
+: TO-BUFFER             ( COPY FROM HERE TO BUFFER )
+  EDIT-SCR @ 16 0 DO
+    I OVER (LINE) I C/L * SCR-BUFFER + SWAP CMOVE
+  LOOP DROP
+;
+
+: FROM-BUFFER           ( COPY FROM BUFFER TO HERE )
+  EDIT-SCR @ 16 0 DO
+    I OVER (LINE) DROP I C/L * SCR-BUFFER + SWAP C/L CMOVE
+  LOOP DROP 1 MUST-UPDATE !
+;
+
+
+
+-->
+------------------ SCREEN 25 ------------------
+( EDITOR -- SCREEN 16 OF 19 -- MORE BUFFERS )
+: SCR-COPY      ( SRC DEST -- COPIES A SCREEN )
+  EDIT-SCR @ ROT ROT    ( OLD IS THIRD )
+  SWAP EDIT-SCR ! TO-BUFFER     ( OLD IS SECOND/DEST IS FIRST )
+  EDIT-SCR ! FROM-BUFFER UPDATE-SCR
+  EDIT-SCR !
+;
+
+: QUOTE-NEXT
+  ED-KEY INSERT-CHAR
+;
+
+: EXECUTE-FORTH-LINE
+  0 17 LOCATE 27 EMIT 84 EMIT REFORTH
+  1 MUST-UPDATE ! TOP-LEVEL ;
+-->
+------------------ SCREEN 26 ------------------
+( EDITOR -- SCREEN 17 OF 19 -- )
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+-->
+------------------ SCREEN 27 ------------------
+( EDITOR -- SCREEN 18 OF 19 -- INITIALIZE BINDINGS )
+
+  ' PREV-LINE CFA 11 (BIND)  ( ^K )
+  ' NEXT-LINE CFA 10 (BIND)  ( ^J )
+  ' PREV-CHAR CFA  8 (BIND)  ( ^H )
+  ' NEXT-CHAR CFA 12 (BIND)  ( ^L )
+  ' NEXT-SCR  CFA  3 (BIND)  ( ^C )
+  ' PREV-SCR  CFA 18 (BIND)  ( ^R )
+  ' EXIT-EDIT CFA 209 (BIND)  ( ESC-Q )
+  ' EDIT-CR   CFA 13 (BIND)  ( ^M )
+  ' TAB-KEY   CFA  9 (BIND)  ( ^I )
+  ' UPDATE-SCR CFA 21 (BIND) ( ^U )
+  ' NEXT-WORD CFA  6 (BIND)  ( ^F )
+  ' PREV-WORD CFA  1 (BIND)  ( ^A )
+  ' UPDATE-AND-FLUSH CFA 198 (BIND) ( ESC-F )
+-->
+------------------ SCREEN 28 ------------------
+( EDITOR -- SCREEN 19 OF 19 -- MORE BINDINGS )
+
+  ' DEL-TO-END-OF-LINE CFA 25 (BIND)  ( ^Y )
+  ' PREV-CHAR CFA 19 (BIND)     ( ^S )
+  ' PREV-LINE CFA 5 (BIND)      ( ^E )
+  ' NEXT-LINE CFA 24 (BIND)     ( ^X )
+  ' NEXT-CHAR CFA 4 (BIND)      ( ^D )
+  ' TO-BUFFER CFA 190 (BIND)    ( ESC-> )
+  ' FROM-BUFFER CFA 188 (BIND)  ( ESC-< )
+  ' NEXT-SCREEN CFA 195 (BIND)  ( ESC-C )
+  ' PREV-SCREEN CFA 210 (BIND)  ( ESC-R )
+  ' QUOTE-NEXT CFA 16 (BIND)    ( ^P )
+  ' EXECUTE-FORTH-LINE CFA 155 (BIND) ( ESC-ESC )
+
+CR ." EDITOR READY "
+;S
+------------------ SCREEN 29 ------------------

@@ -1,0 +1,1042 @@
+PRIM EXECUTE		0	( cfa -- <execute word> )
+PRIM LIT		1	( push the next value to the stack )
+PRIM BRANCH		2	( branch by offset in next word )
+PRIM 0BRANCH		3	( branch if zero by off. in next word )
+PRIM (LOOP)		4	( end of a <DO> )
+PRIM (+LOOP)		5	( inc -- <end of a <DO> w/increment != 1 )
+PRIM (DO)		6	( limit init -- <begin a DO loop> )
+PRIM I			7	( get loop index <R> )
+PRIM DIGIT		8	( c -- DIGIT 1 | 0 <convert digit> )
+PRIM (FIND)		9	( s -- s 0 | s NFA 1 <find word s> )
+PRIM ENCLOSE		10	( addr c -- addr next first last <not quite> )
+PRIM KEY		11	( -- c <get next char from input> )
+PRIM (EMIT)		12	( c -- <put char to output> )
+PRIM ?TERMINAL		13	( see if op. interrupted <like w/^C> )
+PRIM CMOVE		14	( src dest count -- <move words>)
+PRIM U*			15	( unsigned multiply )
+PRIM U/			16	( unsigned divide )
+PRIM AND		17	( a b -- a&b )
+PRIM OR			18	( a b -- a|b )
+PRIM XOR		19	( a b -- a%b )
+PRIM SP@		20	( -- sp )
+PRIM SP!		21	( -- <store empty value to sp> )
+PRIM RP@		22	( -- rp )
+PRIM RP!		23	( -- <store empty value to rp> )
+PRIM ;S			24	( -- <pop r stack <end colon def'n>> )
+PRIM LEAVE		25	( -- <set index = limit for a loop> )
+PRIM >R			26	( a -- <push a to r stack> )
+PRIM R>			27	( -- a <pop a from r stack )
+PRIM 0=			28	( a -- !a <logical not> )
+PRIM 0<			29	( a -- a<0 )
+PRIM +			30	( a b -- a+b )
+PRIM D+			31	( ahi alo bhi blo -- a+bhi a+blo )
+PRIM MINUS		32	( a -- -a )
+PRIM DMINUS		33	( ahi alo -- <-a>hi <-a>lo )
+PRIM OVER		34	( a b -- a b a )
+PRIM DROP		35	( a -- )
+PRIM SWAP		36	( a b -- b a )
+PRIM DUP		37	( a -- a a )
+PRIM 2DUP		38	( a b -- a b a b )
+PRIM +!			39	( val addr -- < *addr += val > )
+PRIM TOGGLE		40	( addr mask -- <*addr %= mask> )
+PRIM @			41	( addr -- *addr )
+PRIM C@			42	( addr -- *addr )
+PRIM 2@			43	( addr -- *addr+1 *addr )
+PRIM !			44	( val addr -- <*addr = val> )
+PRIM C!			45	( val addr -- <*addr = val> )
+PRIM 2!			46	( bhi blo addr -- <*addr=blo, *addr+1=bhi )
+PRIM DOCOL		47	( goes into CF of : definitions )
+PRIM DOCON		48	( goes into CF of constants )
+PRIM DOVAR		49	( goes into CF of variables )
+PRIM DOUSE		50	( goes into CF of user variables )
+PRIM -			51	( a b -- a-b )
+PRIM =			52	( a b -- a==b)
+PRIM !=			53	( a b -- a!=b)
+PRIM <			54	( a b -- a<b )
+PRIM ROT		55	( a b c -- c a b )
+PRIM DODOES		56	( place holder; this value goes into CF )
+PRIM DOVOC		57
+PRIM R			58	( same as I, but must be a primitive )
+PRIM ALLOT		59	( primitive because of mem. management )
+PRIM (BYE)		60	( executes exit <pop[]>; )
+PRIM TRON		61	( depth -- trace to this depth )
+PRIM TROFF		62	( stop tracing )
+PRIM DOTRACE		63	( trace once )
+PRIM (R/W)		64	( BUFFER FLAG ADDR -- read if flag=1, write/0 )
+PRIM (SAVE)		65	( Save current environment )
+PRIM (COLD)		66
+
+( end of primitives )
+
+CONST 0 0
+CONST 1 1
+CONST 2 2
+CONST 3 3
+CONST -1 -1
+CONST BL 32		( A SPACE, OR BLANK )
+CONST C/L 64
+CONST B/BUF 1024
+CONST B/SCR 1
+CONST #BUFF 5		( IMPLEMENTATION DEPENDENT )
+
+CONST WORDSIZE 1	( EXTENSION: WORDSIZE IS THE NUMBER OF BYTES IN A WORD.
+			  USUALLY, THIS IS TWO, BUT WITH PSEUDO-MEMORY
+			  ADDRESSED AS AN ARRAY OF WORDS, IT'S ONE. )
+
+CONST FIRST 0		( ADDRESS OF THE FIRST BUFFER AND END OF BUFFER SPACE )
+CONST LIMIT 0		( the reader fills these in with INITR0 and DPBASE )
+
+USER S0		24
+USER R0		25
+USER TIB	26
+USER WIDTH	27
+USER WARNING	28
+USER FENCE	29
+USER DP		30
+USER VOC-LINK	31
+USER BLK	32
+USER IN		33
+USER ERRBLK	34
+USER ERRIN	35
+USER OUT	36
+USER SCR	37
+USER OFFSET	38
+USER CONTEXT	39
+USER CURRENT	40
+USER STATE	41
+USER BASE	42
+USER DPL	43
+USER FLD	44
+USER CSP	45
+USER R#		46
+USER HLD	47
+
+VAR USE 0		( These two are filled in by COLD )
+VAR PREV 0		( to the same as the constant FIRST )
+CONST SEC/BLK 1
+
+: EMIT
+  (EMIT)
+  1 OUT +! ;
+
+: CR
+  LIT 13 EMIT
+  LIT 10 EMIT
+  0 OUT ! ;
+
+: NOP ;	( DO-NOTHING )
+
+: +ORIGIN ;	( ADD ORIGIN OF SYSTEM; IN THIS CASE, 0 )
+
+: 1+
+  1 + ;
+
+: 2+
+  2 + ;
+
+: 1-
+  1 - ;
+
+: ++		( ADDR -- <INCREMENTS VAL AT ADDR> )
+  1 SWAP +! ;	( MY OWN EXTENSION )
+
+: --		( ADDR -- <DECREMENTS VAL AT ADDR> )
+  -1 SWAP +! ;	( MY OWN EXTENSION )
+
+: HERE		( -- DP )
+  DP @ ;
+
+: ,		( V -- <PLACES V AT DP AND INCREMENTS DP>)
+  HERE !
+  WORDSIZE ALLOT ;	( CHANGE FROM MODEL FOR WORDSIZE )
+
+: C,		( C -- <COMPILE A CHARACTER. SAME AS , WHEN WORDSIZE=1> )
+  HERE C!
+  1 ALLOT ;
+
+: U<		( THIS IS TRICKY. )
+	2DUP XOR 0<	( SIGNS DIFFERENT? )
+	0BRANCH U1	( NO: GO TO U1 )
+	DROP 0< 0=	( YES; ANSWER IS [SECOND > 0] )
+	BRANCH U2	( SKIP TO U2 <END OF WORD> )
+LABEL U1
+	- 0<	( SIGNS ARE THE SAME. JUST SUBTRACT
+		  AND TEST NORMALLY )
+LABEL U2
+	;
+
+: >		( CHEAP TRICK )
+  SWAP < ;
+
+: <>		( NOT-EQUAL )
+  != ;
+
+: SPACE		( EMIT A SPACE )
+  BL EMIT
+;
+
+: -DUP		( V -- V | V V <DUPLICATE IF V != 0> )
+  DUP
+  0BRANCH DDUP1	( SKIP TO END IF IT WAS ZERO )
+  DUP
+LABEL DDUP1
+;
+
+: TRAVERSE	( A DIR -- A <TRAVERSE A WORD FROM NFA TO LFA
+		  <DIR = 1> OR LFA TO NFA <DIR = -1> )
+	SWAP
+LABEL T1
+	OVER	( BEGIN )
+	+
+	LIT 0x7F OVER C@ <	( HIGH BIT CLEAR? )
+	0BRANCH T1		( UNTIL )
+	SWAP DROP ;
+
+: LATEST		( NFA OF LAST WORD DEFINED )
+  CURRENT @ @ ;
+
+: LFA			( GO FROM PFA TO LFA )
+  2 - ;			( 2 IS WORDSIZE*2 )
+
+: CFA			( GO FROM PFA TO CFA )
+  WORDSIZE - ;
+
+: NFA			( GO FROM PFA TO NFA )
+  3 -			( NOW AT LAST CHAR )
+  -1 TRAVERSE ;		( 3 IS WORDSIZE*3 )
+
+: PFA			( GO FROM NFA TO PFA )
+  1 TRAVERSE		( NOW AT LAST CHAR )
+  3 + ;			( 3 IS WORDSIZE*3 )
+
+: !CSP			( SAVE CSP AT USER VAR CSP )
+  SP@ CSP ! ;
+
+: (ABORT)
+  ABORT
+;
+
+: ERROR			( N -- <ISSUE ERROR #N> )
+  WARNING @ 0<		( WARNING < 0 MEANS <ABORT> )
+  0BRANCH E1
+  (ABORT)		( IF )
+LABEL E1
+  HERE COUNT TYPE (.") "?"	( THEN )
+  MESSAGE
+  SP!			( EMPTY THE STACK )
+  BLK @ -DUP		( IF LOADING, STORE IN & BLK )
+  0BRANCH E2
+  ERRBLK ! IN @ ERRIN !	( IF )
+LABEL E2
+  QUIT			( THEN )
+;
+
+: ?ERROR		( F N -- <IF F, DO ERROR #N> )
+  SWAP
+  0BRANCH QERR1
+  ERROR			( IF <YOU CAN'T RETURN FROM ERROR> )
+LABEL QERR1
+  DROP			( THEN )
+;
+
+: ?COMP			( GIVE ERR#17 IF NOT COMPILING )
+  STATE @ 0= LIT 17 ?ERROR
+;
+
+: ?EXEC			( GIVE ERR#18 IF NOT EXECUTING )
+  STATE @ LIT 18 ?ERROR
+;
+
+: ?PAIRS		( GIVE ERR#19 IF PAIRS DON'T MATCH )
+  - LIT 19 ?ERROR
+;
+
+: ?CSP			( GIVE ERR#20 IF CSP & SP DON'T MATCH )
+  SP@ CSP @ - LIT 20 ?ERROR
+;
+
+: ?LOADING		( GIVE ERR#21 IF NOT LOADING )
+  BLK @ 0= LIT 22 ?ERROR
+;
+
+: COMPILE		( COMPILE THE CFA OF THE NEXT WORD TO DICT )
+  ?COMP
+  R> DUP		( GET OUR RETURN ADDRESS )
+  WORDSIZE + >R		( SKIP NEXT; ORIG. ADDR STILL ON TOS )
+  @ ,
+;
+
+: [			( BEGIN EXECUTING )
+  0 STATE !
+;*
+
+: ]			( END EXECUTING )
+  LIT 0xC0 STATE !
+;*
+
+: SMUDGE		( TOGGLE COMPLETION BIT OF LATEST WORD )
+  LATEST		( WHEN THIS BIT=1, WORD CAN'T BE FOUND )
+  LIT 0x20 TOGGLE
+;
+
+: :
+			( DEFINE A WORD )
+  ?EXEC
+  !CSP
+  CURRENT @ CONTEXT !
+  CREATE ]		( MAKE THE WORD HEADER AND BEGIN COMPILING )
+  (;CODE) DOCOL
+;*
+
+: ;			( END A DEFINITION )
+  ?CSP			( CHECK THAT WE'RE DONE )
+  COMPILE ;S		( PLACE ;S AT THE END )
+  SMUDGE [		( MAKE THE WORD FINDABLE AND BEGIN INTERPRETING )
+;*
+
+: CONSTANT
+  CREATE SMUDGE ,
+  (;CODE) DOCON
+;
+
+: VARIABLE
+  CONSTANT
+  (;CODE) DOVAR
+;
+
+: USER
+  CONSTANT
+  (;CODE) DOUSE
+;
+
+: HEX			( GO TO HEXADECIMAL BASE )
+  LIT 0x10 BASE ! ;
+
+: DECIMAL		( GO TO DECIMAL BASE )
+  LIT 0x0A BASE !
+;
+
+: ;CODE				( unused without an assembler )
+  ?CSP COMPILE (;CODE) [ NOP	( "ASSEMBLER" might go where nop is )
+;*
+
+: (;CODE)			( differs from the normal def'n )
+  R> @ @ LATEST PFA CFA !
+;
+
+: <BUILDS		( UNSURE )
+  0 CONSTANT ;		( NOTE CONSTANT != CONST )
+
+: DOES>			( UNSURE )
+  R> LATEST PFA !
+  (;CODE) DODOES
+;
+
+: COUNT			( ADDR -- ADDR+1 COUNT )
+  DUP 1+ SWAP C@ ;	( CONVERTS THE <STRING> ADDR TO A FORM SUITABLE
+			  FOR "TYPE" )
+
+: TYPE
+  -DUP
+  0BRANCH TYPE1
+  OVER + SWAP		( GET START .. END ADDRS )
+  (DO)
+LABEL TYPE2
+    I C@ EMIT
+  (LOOP) TYPE2
+  BRANCH TYPE3
+LABEL TYPE1
+  DROP
+LABEL TYPE3
+;
+
+: -TRAILING		( addr count -- addr count <count adjusted to
+			  exclude trailing blanks> )
+  DUP 0 (DO)		( DO )
+LABEL TRAIL1
+    OVER OVER + 1 - C@ BL -
+    0BRANCH TRAIL2
+    LEAVE BRANCH TRAIL3	( IF )
+LABEL TRAIL2
+    1 -			( ELSE )
+LABEL TRAIL3
+  (LOOP) TRAIL1		( THEN LOOP )
+;
+
+: (.")			( PRINT A COMPILED STRING )
+  R COUNT
+  DUP 1+ R> + >R TYPE
+;
+
+: ."			( COMPILE A STRING IF COMPILING,
+			  OR PRINT A STRING IF INTERPRETING )
+  LIT '"'
+  STATE @
+  0BRANCH QUOTE1
+  COMPILE (.") WORD HERE C@ 1+ ALLOT	( IF )
+  BRANCH QUOTE2
+LABEL QUOTE1
+  WORD HERE COUNT TYPE			( ELSE )
+LABEL QUOTE2
+;*					( THEN )
+
+: EXPECT		( MODIFIED EXPECT lets UNIX input editing & echoing )
+			( change EMIT to DROP below if not -echo )
+  OVER + OVER		( start of input buffer is on top of stack )
+  DUP 0 SWAP C!		( smack a zero at the start to catch empty lines )
+  (DO)			( above is an added departure <read "hack"> )
+LABEL EXPEC1
+    KEY
+			( Comment this region out if using stty cooked )
+    DUP LIT 8 = 0BRANCH EXPEC2
+    DROP DUP I = DUP R> 2 - + >R 0BRANCH EXPEC6
+    LIT 7 BRANCH EXPEC7
+LABEL EXPEC6
+    LIT 8		( output for backspace )
+LABEL EXPEC7
+    BRANCH EXPEC3
+			( End of region to comment out for stty cooked )
+LABEL EXPEC2
+    DUP LIT '\n' = 0BRANCH EXPEC4	( IF )
+    LEAVE DROP BL 0 BRANCH EXPEC5
+LABEL EXPEC4				( ELSE )
+    DUP
+LABEL EXPEC5				( THEN )
+    I C! 0 I 1+ !
+LABEL EXPEC3
+    EMIT		( use DROP here for stty echo, EMIT for -echo )
+    (LOOP) EXPEC1
+    DROP
+;
+
+: QUERY
+  TIB @			( ADDRESS OF BUFFER )
+  B/BUF			( SIZE OF BUFFER )
+  EXPECT		( GET A LINE )
+  0 IN !		( PREPARE FOR INTERPRET )
+;
+
+: {NUL}			( THIS GETS TRANSLATED INTO A SINGLE NULL BYTE )
+  BLK @
+  0BRANCH NULL1
+  BLK ++ 0 IN !		( IF )
+  BLK @ B/SCR 1 - AND 0=
+  0BRANCH NULL2
+  ?EXEC
+  R>			( IF )
+  DROP
+LABEL NULL2
+  BRANCH NULL3		( ENDIF ELSE )
+LABEL NULL1
+  R> DROP
+LABEL NULL3		( ENDIF )
+;*
+
+: FILL			( START COUNT VALUE -- <FILL COUNT WORDS, FROM START,
+			  WITH VALUE )
+  SWAP -DUP
+  0BRANCH FILL1
+  SWAP ROT SWAP OVER C!	( IF <NON-NULL COUNT> )
+  DUP 1+ ROT 1 -
+  CMOVE
+  BRANCH FILL2
+LABEL FILL1
+  DROP DROP
+LABEL FILL2
+;
+
+: ERASE			( START COUNT -- <ZERO OUT MEMORY> )
+  0 FILL
+;
+
+: BLANKS		( START COUNT -- <FILL WITH BLANKS> )
+  BL FILL
+;
+
+: HOLD			( C -- <PLACE C AT --HLD> )
+  HLD -- HLD @ C!
+;
+
+: PAD			( -- ADDR <OF PAD SPACE> )
+  HERE LIT 0x44 +
+;
+
+: WORD			( C -- <GET NEXT WORD TO END OF DICTIONARY,
+			  DELIMITED WITH C OR NULL )
+		( LOADING PART OF THIS IS COMMENTED OUT )
+  BLK @ -DUP
+  0BRANCH W1
+  	BLOCK		( IF loading )
+  	BRANCH W2 
+LABEL W1
+	TIB @		( ELSE )
+LABEL W2		( ENDIF )
+  IN @ + SWAP ENCLOSE	( GET THE WORD )
+  HERE LIT 0x22 BLANKS	( BLANK SPACE AFTER WORD )
+  IN +! OVER - >R R HERE C! + HERE 1+ R> CMOVE
+;
+
+: (NUMBER)
+LABEL NUM1
+  1+
+  DUP >R C@ BASE @ DIGIT
+  0BRANCH NUM2		( WHILE )
+  SWAP BASE @ U* DROP
+  ROT BASE @ U* D+
+  DPL @ 1+
+  0BRANCH NUM3
+  DPL ++		( IF )
+LABEL NUM3
+  R>			( ENDIF )
+  BRANCH NUM1		( REPEAT )
+LABEL NUM2
+  R>
+;
+
+: NUMBER
+  0 0 ROT DUP 1+ C@
+  LIT '-' = DUP >R + -1
+LABEL N1		( BEGIN )
+  DPL ! (NUMBER) DUP C@ BL !=
+  0BRANCH N2		( WHILE )
+  DUP C@ LIT '0' != 0 ?ERROR 0	( . )
+  BRANCH N1		( REPEAT )
+LABEL N2
+  DROP R>
+  0BRANCH N3		( IF )
+  DMINUS
+LABEL N3		( ENDIF )
+;
+
+: -FIND
+  BL WORD ( HERE CONTEXT @ @ <FIND> DUP 0= 0BRANCH FIND1 DROP )
+  HERE LATEST (FIND)
+( LABEL FIND1 )
+;
+
+: ID.			( NFA -- <PRINT ID OF A WORD > )
+  PAD LIT 0x5F BLANKS
+  DUP PFA LFA OVER - PAD SWAP CMOVE
+  PAD COUNT LIT 0x1F AND TYPE SPACE
+;
+
+: CREATE		( MAKE A HEADER FOR THE NEXT WORD )
+  -FIND
+  0BRANCH C1
+  DROP NFA ID. LIT 4 MESSAGE SPACE	( NOT UNIQUE )
+LABEL C1
+  HERE DUP C@ WIDTH @ MIN 1+ ALLOT	( MAKE ROOM )
+  DUP LIT 0xA0 TOGGLE			( MAKE IT UNFINDABLE )
+  HERE 1 - LIT 0x80 TOGGLE		( SET HI BIT )
+  LATEST ,			( DO LF )
+  CURRENT @ !			( UPDATE FOR LATEST )
+  LIT 999 ,			( COMPILE ILLEGAL VALUE TO CODE FIELD )
+;
+
+: [COMPILE]		( COMPILE THE NEXT WORD, EVEN IF IT'S IMMEDIATE )
+  -FIND 0= 0 ?ERROR DROP CFA ,
+;*
+
+: LITERAL
+  STATE @
+  0BRANCH L1
+  COMPILE LIT ,
+LABEL L1
+;*
+
+: DLITERAL
+  STATE @
+  0BRANCH D1
+  SWAP LITERAL LITERAL
+LABEL D1
+;*
+
+: ?STACK		( ERROR IF STACK OVERFLOW OR UNDERFLOW )
+  S0 @ SP@ U< 1 ?ERROR	( SP > S0 MEANS UNDERFLOW )
+  SP@ TIB @ U< LIT 7 ?ERROR  ( SP < R0 MEANS OVERFLOW: THIS IS IMPLEMENTATION-
+				DEPENDENT; I KNOW THAT THE CS IS JUST 
+				ABOVE THE TIB. )
+;
+
+: INTERPRET
+LABEL I1
+  -FIND			( BEGIN )
+  0BRANCH I2
+  STATE @ <		( IF )
+  0BRANCH I3
+  CFA ,			( IF )
+  BRANCH I4
+LABEL I3
+  CFA EXECUTE		( ELSE )
+LABEL I4
+  ?STACK		( ENDIF )
+  BRANCH I5
+LABEL I2
+  HERE NUMBER DPL @ 1+
+  0BRANCH I6
+  DLITERAL		( IF )
+  BRANCH I7
+LABEL I6
+  DROP LITERAL		( ELSE )
+LABEL I7
+  ?STACK		( ENDIF ENDIF )
+LABEL I5
+  BRANCH I1		( AGAIN )
+;
+
+: IMMEDIATE		( MAKE MOST-RECENT WORD IMMEDIATE )
+  LATEST LIT 0x40 TOGGLE
+;
+
+( *** These are commented out because we don't handle vocabularies ***
+
+: VOCABULARY
+  <BUILDS LIT 0xA081 ,
+  CURRENT @ CFA , HERE VOC-LINK @ , VOC-LINK ! DOES>
+  WORDSIZE + CONTEXT !
+;
+
+: DEFINITIONS
+  CONTEXT @ CURRENT !
+;
+*** End of commenting-out *** )
+
+: (		( COMMENT )
+  LIT ')'	( CLOSING PAREN )
+  WORD
+;*
+
+: QUIT
+  0 BLK ! [
+LABEL Q1
+  RP! CR QUERY INTERPRET	( BEGIN )
+  STATE @ 0=
+  0BRANCH Q2
+  (.") "OK"			( IF )
+LABEL Q2
+  BRANCH Q1			( ENDIF AGAIN )
+;
+
+: ABORT
+  SP! DECIMAL ?STACK CR
+  .CPU				( PRINT THE GREETING )
+  ( FORTH )
+  QUIT
+;
+
+: COLD
+  (COLD)
+  VOC-LINK @ CONTEXT !		( INITIALIZE CONTEXT )
+  CONTEXT @ CURRENT !		( MAKE CONTEXT CURRENT )
+  FIRST USE !
+  FIRST PREV !
+  EMPTY-BUFFERS
+  1 WARNING !			( USE SCREEN 4 FOR ERROR MESSAGES )
+  ABORT
+;
+
+: WARM
+  EMPTY-BUFFERS
+  ABORT
+;
+
+: S->D
+  DUP 0<
+  0BRANCH S2D1
+  -1			( HIGH WORD IS ALL 1S )
+  BRANCH S2D2
+LABEL S2D1
+  0
+LABEL S2D2
+;
+
+: +-
+  0<
+  0BRANCH PM1
+  MINUS
+LABEL PM1
+;
+
+: D+-
+  0<
+  0BRANCH DPM1
+  DMINUS
+LABEL DPM1
+;
+
+: ABS
+  DUP +-
+;
+
+: DABS
+  DUP D+-
+;
+
+: MIN
+  2DUP >
+  0BRANCH MIN1
+  SWAP
+LABEL MIN1
+  DROP
+;
+
+: MAX
+  2DUP <
+  0BRANCH MAX1
+  SWAP
+LABEL MAX1
+  DROP
+;
+
+( MATH STUFF )
+
+: M*
+  2DUP XOR >R ABS SWAP ABS U* R> D+-
+;
+
+: M/
+  OVER >R >R DABS R ABS U/
+  R> R XOR +- SWAP
+  R> +- SWAP
+;
+
+: *		( MULTIPLY, OF COURSE )
+  M* DROP
+;
+
+: /MOD
+  >R S->D R> M/
+;
+
+: /			( DIVIDE <AND CONQUOR> )
+  /MOD SWAP DROP
+;
+
+: MOD
+  /MOD DROP
+;
+
+: */MOD
+  >R M* R> M/
+;
+
+: */
+  */MOD
+  SWAP DROP
+;
+
+: M/MOD
+  >R 0 R U/ R> SWAP >R U/ R>
+;
+
+( END OF MATH STUFF )
+
+: (LINE)		( LINE SCR -- ADDR C/L )
+  >R C/L B/BUF */MOD R> B/SCR * + BLOCK +
+  C/L
+;
+
+: .LINE			( LINE SCR -- )
+  (LINE) -TRAILING TYPE
+;
+
+: MESSAGE
+  WARNING @ 0BRANCH MSG1
+  -DUP 0BRANCH MSG2		( message # 0 is no message at all )
+  LIT 4 OFFSET @ B/SCR / - .LINE SPACE ( messages are on screen 4 )
+  BRANCH MSG2
+LABEL MSG1
+  (.") "MSG # " .
+LABEL MSG2
+;
+
+( DISK-ORIENTED WORDS )
+
+: +BUF
+  LIT 1028			( 1K PLUS 4 BYTES OVERHEAD, CO from defines )
+  + DUP LIMIT = 0BRANCH P1
+  DROP FIRST
+LABEL P1
+  DUP PREV @ -
+;
+
+: UPDATE 			( MARK BUFFER AS MODIFIED )
+  PREV @ @ LIT 0X8000 OR PREV @ !
+;
+
+: EMPTY-BUFFERS
+  FIRST LIMIT OVER - ERASE
+;
+
+: BUFFER
+  USE @ DUP >R
+LABEL BUF1
+  +BUF 0BRANCH BUF1		( LOOP UNTIL +BUF RETURNS NONZERO )
+  USE ! R @ 0< 0BRANCH BUF2	( SEE IF IT'S DIRTY <sign bit is dirty bit> )
+  R 2+ R @ LIT 0X7FFF AND 0 R/W	( WRITE THIS DIRTY BUFFER )
+LABEL BUF2
+  R !
+  R PREV !
+  R> 2+
+;
+
+: BLOCK
+  OFFSET @ + >R PREV @ DUP @ R - DUP +
+  0BRANCH BLOCK1
+LABEL BLOCK2
+  +BUF 0=
+  0BRANCH BLOCK3
+  DROP R BUFFER DUP R 1 R/W 2 -
+LABEL BLOCK3
+  DUP @ R - DUP + 0= 0BRANCH BLOCK2
+  DUP PREV ! 
+LABEL BLOCK1
+  R> DROP 2+
+;
+
+: R/W				( ADDR F BUFNO -- read if F=1, write if 0 )
+  (R/W)
+  
+;
+
+: FLUSH
+  #BUFF 1+ 0 (DO) 
+LABEL FLUSH1
+  	0 BUFFER DROP 
+  (LOOP) FLUSH1
+;
+
+: LOAD
+  BLK @ >R IN @ >R 0 IN !
+  B/SCR * BLK !
+  INTERPRET
+  R> IN ! R> BLK !
+;
+
+: -->
+  (.") "--> "
+  ?LOADING 0 IN ! B/SCR BLK @ OVER MOD - BLK +!
+;*
+
+: '
+  -FIND 0= 0 ?ERROR DROP LITERAL
+;*
+
+: FORGET
+  CURRENT @ CONTEXT @ - LIT 24 ?ERROR
+  ' DUP FENCE @ < LIT 21 ?ERROR
+  DUP NFA DP ! LFA @ CONTEXT @ !
+;
+
+( COMPILING WORDS )
+
+: BACK
+  HERE - ,
+;
+
+: BEGIN
+  ?COMP HERE 1
+;*
+
+: ENDIF
+  ?COMP 2 ?PAIRS HERE OVER - SWAP !
+;*
+
+: THEN
+  ENDIF
+;*
+
+: DO
+  COMPILE (DO) HERE LIT 3
+;*
+
+: LOOP
+  LIT 3 ?PAIRS COMPILE (LOOP) BACK
+;*
+
+: +LOOP
+  LIT 3 ?PAIRS ?COMP COMPILE (+LOOP) BACK
+;*
+
+: UNTIL
+  1 ?PAIRS COMPILE 0BRANCH BACK
+;*
+
+: END
+  UNTIL
+;*
+
+: AGAIN
+  ?COMP
+  1 ?PAIRS COMPILE BRANCH BACK
+;*
+
+: REPEAT
+  ?COMP
+  >R >R AGAIN R> R> 2 -
+  ENDIF
+;*
+
+: IF
+  COMPILE 0BRANCH HERE 0 , 2
+;*
+
+: ELSE
+  2 ?PAIRS COMPILE BRANCH HERE 0 , SWAP 2 ENDIF 2
+;*
+
+: WHILE
+  IF 2+
+;*
+
+: SPACES
+  0 MAX -DUP 0BRANCH SPACES1
+  0 (DO) 
+LABEL SPACES2
+  	SPACE 
+  (LOOP) SPACES2
+LABEL SPACES1
+;
+
+: <#
+  PAD HLD !
+;
+
+: #>
+  DROP DROP HLD @ PAD OVER -
+;
+
+: SIGN
+  ROT 0< 0BRANCH SIGN1
+  LIT '-'  HOLD
+LABEL SIGN1
+;
+
+: #
+  BASE @ M/MOD ROT LIT 9 OVER < 0BRANCH #1
+  LIT 7 +		( 7 is offset to make 'A' come after '9')
+LABEL #1
+  LIT '0' + HOLD
+;
+
+: #S
+LABEL #S1
+  # 2DUP OR 0= 0BRANCH #S1
+;
+
+: D.R
+  >R SWAP OVER DABS <# #S SIGN #> R> OVER - SPACES TYPE
+;
+
+: .R
+  >R S->D R> D.R
+;
+
+: D.
+  0 D.R SPACE
+;
+
+: .
+  S->D D.
+;
+
+: ?
+  @ .
+;
+
+: U.
+  0 D.
+;
+
+: VLIST
+  C/L 1+ OUT !  CONTEXT @ @
+LABEL VLIST1			( BEGIN )
+  OUT @ C/L > 0BRANCH VLIST2	( IF )
+  CR
+LABEL VLIST2			( THEN )
+  DUP ID. SPACE PFA LFA @
+  DUP 0= ?TERMINAL OR 0BRANCH VLIST1	( UNTIL )
+  DROP
+;
+
+: .CPU
+  (.") "C-CODED FORTH INTERPRETER"	( special string handling )
+;
+
+: BYE
+  CR (.") "EXIT FORTH" CR
+  0 (BYE)
+;
+
+: LIST
+  DECIMAL CR
+  DUP SCR ! (.") "SCR # " .
+  LIT 16 0 (DO)
+LABEL LIST1
+    CR I 3 .R SPACE
+    I SCR @ .LINE
+    ?TERMINAL 0BRANCH LIST2
+      LEAVE
+LABEL LIST2
+  (LOOP) LIST1
+  CR
+;
+
+: CASE
+  ?COMP CSP @ !CSP LIT 4
+;*
+
+: OF
+  ?COMP LIT 4 ?PAIRS
+  COMPILE OVER COMPILE = COMPILE 0BRANCH 
+  HERE 0 ,
+  COMPILE DROP
+  LIT 5
+;*
+
+: ENDOF
+  ?COMP
+  LIT 5 ?PAIRS
+  COMPILE BRANCH
+  HERE 0 ,
+  SWAP 2 ENDIF LIT 4
+;*
+
+: ENDCASE
+  ?COMP
+  LIT 4 ?PAIRS
+  COMPILE DROP
+LABEL ENDC1			( BEGIN )
+  SP@ CSP @ != 0BRANCH ENDC2	( WHILE )
+  2 ENDIF
+  BRANCH ENDC1			( REPEAT )
+LABEL ENDC2
+  CSP !
+;*
+
+: \			( REMAINER OF THE LINE IS A COMMENT )
+  ?LOADING
+  IN @ C/L / 1+ C/L * IN !
+;*
+
+: ALIAS		( usage: ALIAS NEW OLD; makes already-compiled references )
+		( to OLD refer to NEW. Restrictions: OLD must have been a )
+		( colon-definition, and it must not have been of the form )
+		( { : OLD ; } where the first word of the PFA is ;S .     )
+  ' CFA
+  ' DUP
+  2 - @ LIT DOCOL != LIT 27 ?ERROR	( ERROR IF NOT A COLON DEFINITION )
+  DUP @	LIT ;S = LIT 28 ?ERROR		( MAKE SURE ;S IS NOT THE FIRST WORD )
+  DUP >R ! LIT ;S R> 2+ !
+;
+
+: REFORTH		( GET & EXECUTE ONE FORTH LINE <PERHAPS A NUMBER> )
+  IN @ >R BLK @ >R
+  0 IN ! 0 BLK !
+  QUERY INTERPRET
+  R> BLK ! R> IN !
+;
+
+
+( The vocabulary word FORTH will be compiled after the dictionary is read,
+  with a pointer to the last word in the dictionary, which will be itself. )

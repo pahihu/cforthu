@@ -1,0 +1,110 @@
+
+This is posting one of three of a portable FORTH interpreter, written
+entirely in C.  It has been successfully ported to a VAX 11/60 running
+BSD 2.9, to EUNICE version 3 (I think), and the original machine, a VAX
+11/780 running BSD 4.2.  When I mentioned in net.lang.forth (and elsewhere)
+that I was writing this portable FORTH, several people asked that I post
+the results of my labors. Well, here they are.
+
+					-- Allan Pratt
+			(after May 7:) APRATT.PA@XEROX.ARPA
+
+            [moderator's note:  I have had no luck at all getting through
+	     to this address.  There was a missing file in the original
+             distribution "forth.lex.h" which I have reconstructed
+             (hopefully correctly).                    - John P. Nelson]
+
+
+[In order to move these files to an MS-DOS environment several file
+ names had to be changed.  If you are running under UNIX please
+ changes the following file names:
+
+	forth.dic	to	forth.dict
+	forth_lx.h	to	forth.lex.h
+	forth.lin	to	forth.line
+	lex_yy.c	to	lex.yy.c
+
+ I haven't tried to modify this to run under MS-DOS, however, the
+ code looks fairly portable (with the exception of file names).
+							- Ken Brown ]
+
+[To make a uniform environment, I renamed the files to be MS-DOS
+ compatible:
+
+   forth.dic
+   forth.lin
+
+ In common.h I changed the generated file names to:
+
+   forth.cor
+   forth.map
+   forth.dmp
+   forth.blk
+   forth.sav
+
+                  - Andras Pahi ]
+
+
+QUICK SUMMARY OF FILES (THERE IS A MESS OF THEM!)
+
+Makefile	supposed to bring them all together
+blk2lin.c and blk2lin*	filter to cvt block-files into line-files for editing
+lin2blk.c and lin2blk*	filter to cvt line-files into block-files for FORTH
+
+common.h	This is a header file with configuration and common information
+		used by all C source files except lex.yy.c
+
+forth.h		Header file with primitive numbers in it, among other things
+forth.c		source code for the guts/support functions for the interpreter
+prims.h		Header file with macro definitions for primitives
+prims.c		source code for primitives too complex for macros
+
+		The above four files, plus common.h, contribute to the
+		executable "forth"
+
+nf.c		source for the bootstrapper, which interprets the dictionary
+		and generates an initial memory image for FORTH
+
+forth.lex	lex input for lexical analyzer used by nf.c
+forth.lex.h	header file used by lex.yy.c and nf.c
+(forth_lx.h)
+
+lex.yy.c	lex output, modified (look at the Makefile)
+(lex_yy.c)
+
+		The above four files, plus common.h, contribute to the
+		executable "nf", the preprocessor.
+
+forth.blk*	This is the (default) block-file used by FORTH for its
+		editing- and load-screens
+
+forth.lin	This file usually resembles forth.block, but is in a
+      format suitable for editing with emacs or vi: a header
+		line, followed by sixteen lines of trailing-blank-
+		truncated, newline-terminated text for each screen.
+
+		If one of forth.lin and forth.blk is out of date with
+		respect to the other, you can bring it back up to date
+		with blk2lin or lin2blk, above.
+
+forth.dic	This is a human-readable, pseudo-FORTH dictionary which
+      nf uses to generate the initial environment. It contains
+		forward references and no higher structures like DO..LOOP
+
+forth.cor*	This is one output of nf: it contains the core image for
+		the FORTH environment, as dictated by common.h and forth.dic
+
+forth.sav*	This is the file for holding core images saved with the (SAVE)
+		primitive. If FORTH is started with "-c forth.sav", the
+		image is restarted right where it left off.
+
+forth.map*	This is another output of nf: it contains a human-readable
+		dump of the forth environment which nf generated. This can
+		be compared with the post-mortem dump which FORTH generates
+		in forth.dump in certain cases.
+
+
+[Files marked with an '*' are not included - they are created as
+ the system is installed.  Names in parentheses are the names in
+ this library.   - Ken]
+
