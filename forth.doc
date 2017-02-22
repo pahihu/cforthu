@@ -588,8 +588,8 @@ than the table-lookup which my C compiler generates.
 QUICK SUMMARY OF FILES (THERE IS A MESS OF THEM!)
 
 Makefile	supposed to bring them all together
-b2l.c and b2l	filter to convert block-files into line-files for editing
-l2b.c and l2b	filter to convert line-files into block-files for FORTH
+blk2lin.c and blk2lin	filter to cvt block-files into line-files for editing
+lin2blk.c and lin2blk	filter to cvt line-files into block-files for FORTH
 
 common.h	This is a header file with configuration and common information
 		used by all C source files except lex.yy.c
@@ -607,7 +607,7 @@ nf.c		source for the bootstrapper, which interprets the dictionary
 
 forth.lex	lex input for lexical analyzer used by nf.c
 forth_lx.h	header file used by lex_yy.c and nf.c
-lex_yy.c	lex output, modified (look at the Makefile)
+lex_yy.c	   lex output, modified (look at the Makefile)
 
 		The above four files, plus common.h, contribute to the
 		executable "nf", the preprocessor.
