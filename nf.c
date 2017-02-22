@@ -11,7 +11,7 @@
 #include <stdarg.h>
 #include <string.h>
 #include "common.h"
-#include "forth.lex.h"		/* #defines for lexical analysis */
+#include "forth_lx.h"		/* #defines for lexical analysis */
 
 #define isoctal(c)	(c >= '0' && c <= '7')	/* augument ctype.h */
 

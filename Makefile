@@ -17,20 +17,20 @@ prims.o:	prims.c forth.h prims.h
 
 all:		forth$(EXE) forth.cor lin2blk$(EXE) blk2lin$(EXE)
 
-nf$(EXE):	nf.o lex.yy.o
-		$(CC) $(CFLAGS) -o nf$(EXE) nf.o lex.yy.o
+nf$(EXE):	nf.o lex_yy.o
+		$(CC) $(CFLAGS) -o nf$(EXE) nf.o lex_yy.o
 
-nf.o:		nf.c forth.lex.h common.h
+nf.o:		nf.c forth_lx.h common.h
 		$(CC) $(CFLAGS) -c nf.c
 
-lex.yy.o:	lex.yy.c forth.lex.h
-		$(CC) $(CFLAGS) -c lex.yy.c
+lex_yy.o:	lex_yy.c forth_lx.h
+		$(CC) $(CFLAGS) -c lex_yy.c
 
-lex.yy.c:	forth.lex
-		lex forth.lex
+lex_yy.c:	forth.lex
+		lex -o lex_yy.c forth.lex
 		$(RM) lex.tmp
-		sed "s/int yylex (void)/TOKEN *yylex (void)/g" lex.yy.c > lex.tmp
-		mv -f lex.tmp lex.yy.c
+		sed "s/int yylex (void)/TOKEN *yylex (void)/g" lex_yy.c > lex.tmp
+		mv -f lex.tmp lex_yy.c
 
 forth.cor:	nf$(EXE) forth.dic
 		nf$(EXE) < forth.dic
@@ -51,5 +51,5 @@ blk2lin$(EXE):	blk2lin.c
 
 clean:
 		$(RM) forth.cor forth.dmp forth.map
-		$(RM) lex.yy.c
-		$(RM) *.o nf$(EXE) forth$(EXE) lin2blk$(EXE) blk2lin$(EXE)
+		$(RM) lex_yy.c *.o
+		$(RM) nf$(EXE) forth$(EXE) lin2blk$(EXE) blk2lin$(EXE)

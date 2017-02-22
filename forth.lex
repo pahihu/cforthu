@@ -61,7 +61,7 @@ octal	[0-7]
 white	[ \t\n\r\f]
 
 %{
-#include "forth.lex.h"
+#include "forth_lx.h"
 TOKEN token;
 
 #define YY_INPUT(buf,result,max_size) \
