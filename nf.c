@@ -47,6 +47,7 @@ Cell dp = DPBASE;
 Cell latest;
 
 Cell mem[INITMEM];
+unsigned char *bytmem;
 
 FILE *outf;
 
@@ -83,8 +84,10 @@ int main(argc, argv)
 int argc;
 char *argv[];
 {
+    bytmem = (unsigned char *)mem;
+
 #ifdef DEBUG
-	puts("Opening output file");
+    puts("Opening output file");
 #endif /* DEBUG */
 
     strcpy(firstchain.chaintext," ** HEADER **");
@@ -415,7 +418,7 @@ void mkrest()			/* Write out the word FORTH as a no-op with
 
 	mkword("FORTH",mem[instance("DOCOL")]);
 	comma(instance(";S"));
-	comma(0xA081);	/* magic number for vocabularies */
+	comma(0xA081);	        /* magic number for vocabularies */
 	comma(latest);		/* NFA of last word in dictionary: FORTH */
 
 	mem[LIMIT] = dp + 1024;

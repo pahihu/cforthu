@@ -38,6 +38,7 @@
 
 UCell csp, rsp, ip, w;
 Cell *mem;
+unsigned char *bytmem;
 int trace, tracedepth, debug, breakenable, qtermflag, forceip;
 Cell breakpoint;
 int nobuf;
@@ -93,6 +94,7 @@ int n;
 	if (mem == NULL)
 		errexit("REALLOC FAILED\n");
 	mem[LIMIT] = newsize;
+        bytmem = (unsigned char *)mem;
     }
 }
 
@@ -404,6 +406,7 @@ char *argv[];
 	}
 
 	mem[LIMIT] = size;
+        bytmem = (unsigned char *)mem;
 
 	if (fread(mem+1, sizeof(*mem), size-1, fp) != size-1) {
 		fprintf(stderr, "Forth: not %d bytes on %s.\n",

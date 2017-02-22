@@ -271,15 +271,20 @@ void tfetch()			/* 2@: addr -- mem[addr+1] mem[addr] */
     push (mem[addr]);
 }
 
-void store()		/* !: val addr -- <set mem[addr] = val> */
+void store()		        /* !: val addr -- <set mem[addr] = val> */
 {
     UCell tmp;
     tmp = pop();
     mem[tmp] = pop();
 }
 
-void cstore()		/* C!: val addr --  */
+void cstore()		        /* C!: val addr --  */
 {
+#if 0
+    UCell tmp;
+    tmp = pop();
+    bytmem[tmp] = pop();
+#endif
     store();
 }
 
