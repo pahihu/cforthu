@@ -33,7 +33,7 @@ lex_yy.c:	forth.lex
 		mv -f lex.tmp lex_yy.c
 
 forth.cor:	nf$(EXE) forth.dic
-		nf$(EXE) < forth.dic
+		./nf$(EXE) < forth.dic
 
 # lin2blk: convert a line file to a block file.
 # Usage: lin2blk < linefile > blockfile
@@ -48,6 +48,9 @@ blk2lin$(EXE):	blk2lin.c
 # forth.lin and forth.blk are not included here, because you can't tell
 # which one is more recent. To make one from the other, use blk2lin and
 # lin2blk.
+
+forth.blk:	forth.lin lin2blk$(EXE)
+		./lin2blk$(EXE) < forth.lin > forth.blk
 
 clean:
 		$(RM) forth.cor forth.dmp forth.map

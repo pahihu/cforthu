@@ -1,7 +1,7 @@
 /* nf.c -- this program can be run to generate a new environment for the
  * FORTH interpreter forth.c. It takes the dictionary from the standard input.
- * Normally, this dictionary is in the file "forth.dict", so 
- *	nf < forth.dict
+ * Normally, this dictionary is in the file "forth.dic", so 
+ *	nf < forth.dic
  * will do the trick.
  */
 
@@ -116,6 +116,7 @@ char *argv[];
     writedict();
 
     printf("%s: done.\n", argv[0]);
+    return 0;
 }
 
 void buildcore()			/* set up low core */
@@ -434,7 +435,7 @@ void writedict()		/* write memory to COREFILE and map
     char    chars[9], outline[(2*CELL_BYTES)*9+9+8+1], tstr[2*(CELL_BYTES+2)];
 
     chars[8] = '\0';
-    outfile = fopen(MAPFILE,"w");
+    outfile = fopen(MAPFILE,FO_WRITE);
 
     for (temp = 0; temp < dp; temp += 8) {
 	nonzero = FALSE;
@@ -470,7 +471,7 @@ void writedict()		/* write memory to COREFILE and map
     printf ("Writing %s; DPBASE=%d; dp=%d\n", COREFILE, DPBASE, dp);
 #endif
 
-    if ((outf = fopen (COREFILE, "w")) == NULL) {
+    if ((outf = fopen (COREFILE, FO_WRITE)) == NULL) {
 	printf ("nf: can't open %s for output.\n", COREFILE);
 	exit (1);
     }

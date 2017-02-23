@@ -23,5 +23,6 @@ int main()
 		putchar('\n');
 	    }
 	}
+        fflush (stdout);
         return 0;
 }

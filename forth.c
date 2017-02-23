@@ -16,8 +16,8 @@
  * the file prims.c contains code for the C-coded primitives, and the
  * file forth.h connects the two with definitions.
  *
- * The program nf.c generates a new forth.core file from the dictionary
- * forth.dict, using common.h to tie it together with this program.
+ * The program nf.c generates a new forth.cor file from the dictionary
+ * forth.dic, using common.h to tie it together with this program.
  */
  
 
@@ -343,9 +343,9 @@ char *argv[];
 	UCell size;
 	int i = 1;
 
-	cfilename = COREFILE;	/* "forth.core" */
-	bfilename = BLOCKFILE;	/* "forth.block" */
-	sfilename = SAVEFILE;	/* "forth.newcore" */
+	cfilename = COREFILE;	/* "forth.cor" */
+	bfilename = BLOCKFILE;	/* "forth.blk" */
+	sfilename = SAVEFILE;	/* "forth.sav" */
 	trace = debug = breakenable = nobuf = 0;
 
 	while (i < argc) {
@@ -396,7 +396,7 @@ char *argv[];
 		i++;
 	}
 
-	if ((fp = fopen(cfilename,"r")) == NULL) {
+	if ((fp = fopen(cfilename,FO_READ)) == NULL) {
 		fprintf(stderr,"Forth: Could not open %s\n", cfilename);
 		exit(1);
 	}
@@ -567,7 +567,7 @@ void getblockfile()
 	/* with the pointer positioned at the end; this is so ftell returns */
 	/* the size of the file.					    */
 
-	if ((blockfile = fopen(bfilename, "r+")) == NULL) /* M000 */
+	if ((blockfile = fopen(bfilename, FO_READ_APPEND)) == NULL) /* M000 */
 		errexit("Can't open blockfile \"%s\"\n", bfilename);
         fseek(blockfile, 0L, SEEK_END); /* M000 */
 	bfilesize = ftell(blockfile);

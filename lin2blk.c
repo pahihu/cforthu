@@ -26,6 +26,7 @@ int main()
 			printf("%s%s",buf,spaces+strlen(buf));
 		}
 	}
+        fflush (stdout);
         return 0;
 }
 			

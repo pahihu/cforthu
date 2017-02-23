@@ -30,11 +30,19 @@ typedef int          Word;
 #endif
 
 #ifdef CELL_8BYTES
+#if _WIN32
+typedef long long     Cell;
+typedef unsigned long long UCell;
+typedef long long     DCell;
+typedef unsigned long long UDCell;
+typedef long long     Word;
+#else
 typedef long          Cell;
 typedef unsigned long UCell;
 typedef long          DCell;
 typedef unsigned long UDCell;
 typedef long          Word;
+#endif
 
 #define FMT_HEXCELL    "%016lx"
 #define MKDCELL(x,y)   ((DCell)(y))
@@ -48,6 +56,17 @@ typedef long          Word;
 #endif
 #ifndef DCHIGH
 #define DCHIGH(d)    ((Cell)(((d) >> (8*CELL_BYTES)) & (Cell) -1))
+#endif
+
+
+#if _WIN32
+#define FO_WRITE        "wb"
+#define FO_READ         "rb"
+#define FO_READ_APPEND  "rb+"
+#else
+#define FO_WRITE        "w"
+#define FO_READ         "r"
+#define FO_READ_APPEND  "r+"
 #endif
 
 
