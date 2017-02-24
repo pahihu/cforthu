@@ -18,11 +18,11 @@
 ------------------ SCREEN 1 ------------------
 ( UNTHREAD VERSION 2 / SCREEN 1 OF 3 )
 : DOQUOTE                       \ AFTER (.")
-  34 EMIT WORDSIZE + DUP C@ OVER 1+ SWAP TYPE
+  34 EMIT #CELL + DUP C@ OVER 1+ SWAP TYPE
   34 EMIT SPACE DUP C@ + 1+ ;
 
 : DOLIT         \ AFTER LIT, BRANCHES, AND (LOOP)S
-  WORDSIZE + DUP @ . WORDSIZE + ;
+  #CELL + DUP @ . #CELL + ;
 
 
 
@@ -35,7 +35,7 @@
 ------------------ SCREEN 2 ------------------
 ( UNTHREAD VERSION 2 / SCREEN 2 OF 3 )
 : DOWORD        \ MAIN UNTHREADER
-  DUP @ WORDSIZE + DUP NFA ID.  CASE
+  DUP @ #CELL + DUP NFA ID.  CASE
     ' LIT       OF DOLIT        ENDOF
     ' 0BRANCH   OF DOLIT        ENDOF
     ' BRANCH    OF DOLIT        ENDOF
@@ -43,7 +43,7 @@
     ' (+LOOP)   OF DOLIT        ENDOF
     ' (.")      OF DOQUOTE      ENDOF
     ' ;S        OF DROP 0       ENDOF \ LEAVE 0
-    DUP         OF WORDSIZE +   ENDOF \ DEFAULT
+    DUP         OF #CELL +      ENDOF \ DEFAULT
   ENDCASE ;
 
 -->
@@ -176,10 +176,10 @@ DECIMAL
 0 VARIABLE MUST-UPDATE  0 VARIABLE LAST-KEY-STRUCK
 0 VARIABLE CURSOR-IS-DIRTY
 
-0 VARIABLE KEYMAP  WORDSIZE 255 *  ALLOT
-           KEYMAP  WORDSIZE 256 *  ERASE
+0 VARIABLE KEYMAP  #CELL 255 *  ALLOT
+           KEYMAP  #CELL 256 *  ERASE
 
-0 VARIABLE SCR-BUFFER B/BUF B/SCR * WORDSIZE - ALLOT
+0 VARIABLE SCR-BUFFER B/BUF B/SCR * #CELL - ALLOT
 
 ( TERMINAL CONSTANTS -- VALUE IS SCREEN NUMBER TO LOAD )
 6 CONSTANT VT100   7 CONSTANT ADM5
@@ -200,7 +200,7 @@ LOAD             \ load the right screen; VT100 = 6, ADM5 = 7
   0 15 LOCATE MESSAGE ;
 
 : BIND-ADDR          ( C -- ADDR where binding is stored )
-  WORDSIZE * KEYMAP + ;
+  #CELL * KEYMAP + ;
 -->
 ------------------ SCREEN 12 ------------------
 ( EDITOR -- SCREEN 3 OF 19 -- I/O )
@@ -291,7 +291,7 @@ DECIMAL -->
 ( EDITOR -- SCREEN  8 OF 19 -- EXECUTE-KEY )
 
 : EXECUTE-KEY        ( K -- EXECUTE THE KEY )
-  WORDSIZE * KEYMAP + @ -DUP IF
+  #CELL * KEYMAP + @ -DUP IF
                            EXECUTE
                         ELSE
                            SELF-INSERT
@@ -492,3 +492,37 @@ DECIMAL
 CR ." EDITOR READY "
 ;S
 ------------------ SCREEN 29 ------------------
+( UTILS -- CELLS CELL+ CHARS CHAR+ BUFFER: ARRAY ASCII )
+: CELLS ( n - m) ; : CELL+ ( n - m) 1+ ;
+: CHARS ( n - m) ; : CHAR+ ( n - m) 1+ ;
+: BUFFER: ( n "name") CREATE SMUDGE CHARS ALLOT (;CODE) DOVAR ;
+: ARRAY ( n "name") CELLS BUFFER: ;
+: ASCII ( "a") BL WORD HERE 1+ C@ [COMPILE] LITERAL ; IMMEDIATE
+
+
+
+
+
+
+
+
+
+
+------------------ SCREEN 30 ------------------
+( UTILS -- BOUNDS H. DUMP DEPTH .S )
+: BOUNDS ( a # - hi lo) OVER + SWAP ;
+: H. ( n) BASE @ >R  SPACE HEX #CELL .R  R> BASE ! ;
+: ADDR. ( n) CR H. ASCII : EMIT ;
+: DUMP ( a n) OVER 7 AND IF  OVER ADDR.  THEN
+   CELLS BOUNDS DO
+      I 7 AND 0= IF  I ADDR.  THEN   I @ H.
+   #CELL +LOOP  CR ;
+: DEPTH ( - n) SP@ S0 @ SWAP - ;
+: .S ( -) SP@ DEPTH 1- -DUP
+   IF    CELLS BOUNDS DO  I ? #CELL  +LOOP 
+   ELSE  DROP  THEN ; 
+
+
+
+
+------------------ SCREEN 31 ------------------
