@@ -8,11 +8,10 @@ Changes:
 
    * works on macOS, Linux, Windows
    * supported cell sizes: 16/32/64bit
+   * supports DODOES and vocabularies
 
 Limitations:
 
    * cell addressed FORTH virtual machine
-   * does not support DOVOC
-   * does not support DODOES
 
 **NOTE**: There are excellent FORTHs written in C like FiCL, cforth by Mitch Bradley, PFE, and gforth.
