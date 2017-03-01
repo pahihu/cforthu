@@ -57,8 +57,8 @@
 #define equal() { push(pop() == pop()); }
 				/* not equal */
 #define noteq() { push (pop() != pop()); }
-				/* DODOES -- not supported */
-#define dodoes() { errexit("DOES> is not supported."); }
+				/* DODOES */
+#define dodoes() { rpush(ip); ip = mem[w+1]; push (w+2); }
 				/* DOVOC -- not supported */
 #define dovoc() { errexit("VOCABULARIES are not supported."); }
 				/* (BYE) -- exit with error code */
