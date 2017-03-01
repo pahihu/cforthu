@@ -509,9 +509,11 @@ LABEL N3		( ENDIF )
 ;
 
 : -FIND
-  BL WORD ( HERE CONTEXT @ @ <FIND> DUP 0= 0BRANCH FIND1 DROP )
+  BL WORD HERE CONTEXT @ @ (FIND) DUP 0=
+  0BRANCH FIND1         ( IF )
+  DROP
   HERE LATEST (FIND)
-( LABEL FIND1 )
+LABEL FIND1
 ;
 
 : ID.			( NFA -- <PRINT ID OF A WORD > )
@@ -588,8 +590,6 @@ LABEL I5
   LATEST LIT 0x40 TOGGLE
 ;
 
-( *** These are commented out because we don't handle vocabularies ***
-
 : VOCABULARY
   <BUILDS LIT 0xA081 ,
   CURRENT @ CFA , HERE VOC-LINK @ , VOC-LINK ! DOES>
@@ -599,7 +599,6 @@ LABEL I5
 : DEFINITIONS
   CONTEXT @ CURRENT !
 ;
-*** End of commenting-out *** )
 
 : (		( COMMENT )
   LIT ')'	( CLOSING PAREN )
@@ -627,7 +626,7 @@ LABEL Q2
 : COLD
   (COLD)
   VOC-LINK @ CONTEXT !		( INITIALIZE CONTEXT )
-  CONTEXT @ CURRENT !		( MAKE CONTEXT CURRENT )
+  DEFINITIONS
   FIRST USE !
   FIRST PREV !
   EMPTY-BUFFERS

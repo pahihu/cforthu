@@ -417,8 +417,8 @@ void mkrest()			/* Write out the word FORTH as a no-op with
 	if ((mem[dp++] = instance("ABORT")) == 0)
 		dicterr("ABORT must be defined to take control at interrupt");
 
-	mkword("FORTH",mem[instance("DOCOL")]);
-	comma(instance(";S"));
+	mkword("FORTH",mem[instance("DODOES")]);
+        comma(instance("VOCABULARY") + 16);
 	comma(0xA081);	        /* magic number for vocabularies */
 	comma(latest);		/* NFA of last word in dictionary: FORTH */
 
