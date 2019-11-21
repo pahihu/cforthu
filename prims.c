@@ -231,8 +231,14 @@ void uslash()		/* u/: NUM.LO NUM.HI DENOM -- REM QUOT */
     denom = pop();
     numhi = pop();
     numlo = pop();
-    quot = ((UDCell)MKDCELL(numhi,numlo)) / (UDCell)denom;
-    remainder = ((UDCell)MKDCELL(numhi,numlo)) % (UDCell)denom;
+    if (denom == 0) {
+        quot = (UCell) -1;
+        remainder = (UCell) -1;
+    }
+    else {
+        quot = ((UDCell)MKDCELL(numhi,numlo)) / (UDCell)denom;
+        remainder = ((UDCell)MKDCELL(numhi,numlo)) % (UDCell)denom;
+    }
 
     push (remainder);
     push (quot);
