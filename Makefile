@@ -4,6 +4,8 @@ CFLAGS = -m32 -O1 -DCELL_4BYTES=1
 # CFLAGS = -m64 -O1 -DCELL_8BYTES=1 #-DDEBUG=1
 EXE = # .exe
 
+all:		forth$(EXE) forth.cor lin2blk$(EXE) blk2lin$(EXE)
+
 test:		forth.cor forth$(EXE)
 
 forth$(EXE):	forth.o prims.o
@@ -14,8 +16,6 @@ forth.o:	forth.c common.h forth.h prims.h
 
 prims.o:	prims.c forth.h prims.h
 		$(CC) $(CFLAGS) -c prims.c
-
-all:		forth$(EXE) forth.cor lin2blk$(EXE) blk2lin$(EXE)
 
 nf$(EXE):	nf.o lex_yy.o
 		$(CC) $(CFLAGS) -o nf$(EXE) nf.o lex_yy.o
