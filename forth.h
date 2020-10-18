@@ -71,6 +71,7 @@
 #define PRSLW		64
 #define PSAVE		65
 #define PCOLD		66
+#define PLIMIT   67
 
 /* memory */
 #define GULPFRQ		256	/* if mem[LIMIT] - dp < GULPFRQ, then get */

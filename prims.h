@@ -102,3 +102,4 @@ void less();
 void pcold();
 void prslw();
 void psave();
+void plimit();

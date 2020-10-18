@@ -65,6 +65,7 @@ PRIM DOTRACE		63	( trace once )
 PRIM (R/W)		64	( BUFFER FLAG ADDR -- read if flag=1, write/0 )
 PRIM (SAVE)		65	( Save current environment )
 PRIM (COLD)		66
+PRIM #LIMIT   67  ( -- #limit )
 
 ( end of primitives )
 

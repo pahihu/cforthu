@@ -287,6 +287,7 @@ next1:				/* This is for the SPECIAL CASE */
 	case PRSLW	:  prslw(); break;
 	case PSAVE	:  psave(); break;
 	case PCOLD	:  pcold(); break;
+        case PLIMIT     :  plimit(); break;
 	default		:  errexit("Bad execute-code %d\n",p); break;
 	}
     }
@@ -590,4 +591,4 @@ void getblockfile()
 	printf("Block file has %d blocks.\n",(int) (bfilesize/1024) - 1);
 }
 
-/* vim: set ts=4 sw=4: */
+/* vim: set ts=8 sw=8: */

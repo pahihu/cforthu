@@ -496,3 +496,10 @@ void psave()
 	puts("Saved. Exit FORTH.");
 	exit(0);
 }
+
+void plimit()
+{
+        push ((bfilesize / 1024) - 1);
+}
+
+/* vim: set ts=8 sw=8: */
