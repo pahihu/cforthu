@@ -6,9 +6,12 @@ John P. Nelson, Ken Brown and Marc de Groot.
 
 Changes:
 
-   * works on macOS, Linux, Windows
-   * supported cell sizes: 16/32/64bit
+   * -DUSE_CURTERM enables terminal handling, block editor works
    * supports DODOES and vocabularies
+   * supported cell sizes: 16/32/64bit
+   * works on macOS, Linux, Windows
+
+pahihu 18 / 10 / 2020
 
 Limitations:
 
