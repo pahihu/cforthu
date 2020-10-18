@@ -28,6 +28,10 @@
 #include <string.h>
 #include <ctype.h>	/* only for isxdigit */
 
+#ifdef USE_CURTERM
+#include "curterm.h"
+#endif
+
 #include "common.h"
 
 #include "forth.h"
@@ -134,7 +138,18 @@ Cell rpop()
 int pkey()		/* (KEY) -- wait for a key & return it */
 {
     int c;
-    if ((c = getchar()) == EOF) errexit("END-OF-FILE ENCOUNTERED");
+
+#ifdef USE_CURTERM
+    prepterm(1);
+    while (!has_key());
+    c = getkey(0);
+    if (c == '\r')
+        c = '\n';
+    prepterm(0);
+#else
+    c = getchar();
+#endif
+    if (c == EOF) errexit("END-OF-FILE ENCOUNTERED");
     return(c);
 }
 
@@ -574,3 +589,5 @@ void getblockfile()
 
 	printf("Block file has %d blocks.\n",(int) (bfilesize/1024) - 1);
 }
+
+/* vim: set ts=4 sw=4: */

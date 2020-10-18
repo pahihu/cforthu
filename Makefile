@@ -1,21 +1,24 @@
 CC = cc
 # CFLAGS = -m32 -O1 -DCELL_2BYTES=1
-CFLAGS = -m32 -O1 -DCELL_4BYTES=1
-# CFLAGS = -m64 -O1 -DCELL_8BYTES=1 #-DDEBUG=1
+# CFLAGS = -m32 -O1 -DCELL_4BYTES=1
+CFLAGS = -m64 -O1 -DCELL_8BYTES=1 -DUSE_CURTERM=1 #-DDEBUG=1
 EXE = # .exe
 
 all:		forth$(EXE) forth.cor lin2blk$(EXE) blk2lin$(EXE)
 
 test:		forth.cor forth$(EXE)
 
-forth$(EXE):	forth.o prims.o
-		$(CC) $(CFLAGS) -o forth$(EXE) forth.o prims.o
+forth$(EXE):	forth.o prims.o curterm.o
+		$(CC) $(CFLAGS) -o forth$(EXE) forth.o prims.o curterm.o
 
 forth.o:	forth.c common.h forth.h prims.h
 		$(CC) $(CFLAGS) -c forth.c
 
 prims.o:	prims.c forth.h prims.h
 		$(CC) $(CFLAGS) -c prims.c
+
+curterm.o:	curterm.h
+		$(CC) $(CFLAGS) -c curterm.c
 
 nf$(EXE):	nf.o lex_yy.o
 		$(CC) $(CFLAGS) -o nf$(EXE) nf.o lex_yy.o
